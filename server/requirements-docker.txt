@@ -1,0 +1,8 @@
+# Docker base image dependencies (no MySQL, no cloud storage SDKs)
+fastapi==0.115.0
+uvicorn[standard]==0.30.0
+pydantic==2.9.0
+python-multipart==0.0.9
+apscheduler==3.10.4
+pydantic-settings==2.5.2
+aiofiles==24.1.0

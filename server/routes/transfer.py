@@ -1,11 +1,13 @@
-from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException
+from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException, Request
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
-from database import get_db
+from typing import Optional, List
+
+from database import get_db, User as UserModel
 from schemas import TransferCreateResponse, TransferVerifyRequest, TransferResponse
 from services import transfer_service
 from config import settings
-from typing import Optional, List
+from deps import get_current_user
 
 router = APIRouter(prefix="/api/transfer", tags=["transfer"])
 
@@ -16,6 +18,7 @@ async def create_transfer(
     text_content: Optional[str] = Form(None),
     files: List[UploadFile] = File(default=[]),
     db: Session = Depends(get_db),
+    user: Optional[UserModel] = Depends(get_current_user),
 ):
     """Upload text and/or files, create a transfer with a 4-digit code."""
     # Validate type
@@ -53,8 +56,11 @@ async def create_transfer(
     elif type == "mixed" and not files:
         actual_type = "text"
 
-    # Create transfer
-    transfer = transfer_service.create_transfer(db, actual_type, text_content)
+    # Get user_id if logged in
+    user_id = user.id if user else None
+
+    # Create transfer (with optional user_id for permanent text saving)
+    transfer = transfer_service.create_transfer(db, actual_type, text_content, user_id=user_id)
 
     # Save files if any
     if files:
@@ -80,7 +86,12 @@ async def verify_code(req: TransferVerifyRequest, db: Session = Depends(get_db))
 
 
 @router.get("/{code}", response_model=TransferResponse)
-async def get_transfer(code: str, db: Session = Depends(get_db)):
+async def get_transfer(
+    code: str,
+    request: Request,
+    db: Session = Depends(get_db),
+    user: Optional[UserModel] = Depends(get_current_user),
+):
     """Retrieve transfer details by code."""
     if len(code) != 4 or not code.isdigit():
         raise HTTPException(status_code=400, detail="请输入 4 位数字密码")
@@ -89,7 +100,11 @@ async def get_transfer(code: str, db: Session = Depends(get_db)):
     if not valid:
         raise HTTPException(status_code=404, detail=msg)
 
-    transfer = transfer_service.get_transfer(db, code)
+    # Get client IP
+    client_ip = request.client.host if request.client else None
+    user_id = user.id if user else None
+
+    transfer = transfer_service.get_transfer(db, code, user_id=user_id, client_ip=client_ip)
     if not transfer:
         raise HTTPException(status_code=404, detail="密码无效")
 

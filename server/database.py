@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime, func
+from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime, Boolean, ForeignKey, Index, func
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from config import settings
@@ -46,6 +46,15 @@ def get_session_local():
     return _SessionLocal
 
 
+class User(Base):
+    __tablename__ = "user"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    username = Column(String(50), unique=True, nullable=False, index=True)
+    hashed_password = Column(String(255), nullable=False)
+    created_at = Column(DateTime, server_default=func.now())
+
+
 class Transfer(Base):
     __tablename__ = "transfer"
 
@@ -58,6 +67,9 @@ class Transfer(Base):
     download_count = Column(Integer, default=0)
     fail_count = Column(Integer, default=0)
     locked_until = Column(DateTime, nullable=True)
+    # User system fields
+    user_id = Column(Integer, ForeignKey("user.id"), nullable=True)
+    permanent = Column(Boolean, default=False, server_default="0")
 
 
 class TransferFile(Base):
@@ -69,6 +81,21 @@ class TransferFile(Base):
     storage_path = Column(String(512), nullable=False)
     file_size = Column(Integer, nullable=False)
     content_type = Column(String(128), nullable=False)
+
+
+class TransferRecord(Base):
+    __tablename__ = "transfer_record"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("user.id"), nullable=True)
+    action = Column(String(10), nullable=False)  # send / retrieve
+    transfer_code = Column(String(4), nullable=False, index=True)
+    client_ip = Column(String(45), nullable=True)
+    created_at = Column(DateTime, server_default=func.now())
+
+    __table_args__ = (
+        Index("ix_record_user_time", "user_id", "created_at"),
+    )
 
 
 def init_db():

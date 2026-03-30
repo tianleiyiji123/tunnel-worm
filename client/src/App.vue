@@ -1,6 +1,6 @@
 <template>
   <div class="relative z-10 min-h-screen flex flex-col">
-    <AppHeader />
+    <AppHeader @open-login="showLoginDialog = true" />
     <main class="flex-1 pt-16">
       <router-view v-slot="{ Component }">
         <transition name="page" mode="out-in">
@@ -8,11 +8,22 @@
         </transition>
       </router-view>
     </main>
+
+    <!-- Login Dialog (global, not inside fixed header) -->
+    <LoginDialog
+      v-model:visible="showLoginDialog"
+      @success="showLoginDialog = false"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
+import { ref, provide } from 'vue'
 import AppHeader from './components/AppHeader.vue'
+import LoginDialog from './components/LoginDialog.vue'
+
+const showLoginDialog = ref(false)
+provide('showLoginDialog', showLoginDialog)
 </script>
 
 <style>

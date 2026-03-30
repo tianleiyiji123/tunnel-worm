@@ -16,3 +16,8 @@ for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
 app.use(ElementPlus)
 app.use(router)
 app.mount('#app')
+
+// Check auth status on startup
+import { useAuth } from './composables/useAuth'
+const { checkAuth } = useAuth()
+checkAuth()

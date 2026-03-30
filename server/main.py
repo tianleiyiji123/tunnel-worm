@@ -9,6 +9,8 @@ from database import init_db, get_session_local
 from services import transfer_service
 from routes.transfer import router as transfer_router
 from routes.setup import router as setup_router
+from routes.auth import router as auth_router
+from routes.records import router as records_router
 
 # Frontend static files directory (Docker: /app/static, dev: not used)
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
@@ -27,6 +29,22 @@ async def lifespan(app: FastAPI):
     # Ensure data directory exists
     from config import DATA_DIR
     DATA_DIR.mkdir(parents=True, exist_ok=True)
+
+    # Ensure JWT_SECRET is set
+    from config import settings, CONFIG_FILE
+    if not settings.JWT_SECRET:
+        import json, secrets
+        jwt_secret = secrets.token_urlsafe(32)
+        # Write to config.json
+        cfg = {}
+        if CONFIG_FILE.exists():
+            with open(CONFIG_FILE, "r") as f:
+                cfg = json.load(f)
+        cfg["JWT_SECRET"] = jwt_secret
+        with open(CONFIG_FILE, "w") as f:
+            json.dump(cfg, f, indent=2)
+        settings.JWT_SECRET = jwt_secret
+        print("🔑 Generated JWT secret")
 
     init_db()
     await storage.ensure_bucket()
@@ -83,6 +101,8 @@ app.add_middleware(
 
 # Register routes
 app.include_router(setup_router)
+app.include_router(auth_router)
+app.include_router(records_router)
 app.include_router(transfer_router)
 
 

@@ -1,7 +1,8 @@
 import random
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
-from database import Transfer, TransferFile
+
+from database import Transfer, TransferFile, TransferRecord
 from config import settings
 
 
@@ -21,20 +22,48 @@ def generate_code(db: Session) -> str:
     raise Exception("Failed to generate unique code after 100 attempts")
 
 
-def create_transfer(db: Session, transfer_type: str, text_content: str = None, files: list = None) -> Transfer:
-    """Create a new transfer record."""
+def create_transfer(
+    db: Session,
+    transfer_type: str,
+    text_content: str = None,
+    files: list = None,
+    user_id: int = None,
+) -> Transfer:
+    """Create a new transfer record.
+
+    If user_id is provided and type is text or mixed-with-text,
+    the transfer is marked as permanent (never expires).
+    File-only transfers always expire after TRANSFER_EXPIRE_HOURS.
+    """
     code = generate_code(db)
     expires_at = datetime.utcnow() + timedelta(hours=settings.TRANSFER_EXPIRE_HOURS)
+
+    # Determine if this transfer should be permanent
+    is_permanent = False
+    if user_id and transfer_type in ("text", "mixed"):
+        is_permanent = True
 
     transfer = Transfer(
         code=code,
         type=transfer_type,
         text_content=text_content if transfer_type in ("text", "mixed") else None,
         expires_at=expires_at,
+        user_id=user_id,
+        permanent=is_permanent,
     )
     db.add(transfer)
     db.commit()
     db.refresh(transfer)
+
+    # Record the send action
+    record = TransferRecord(
+        user_id=user_id,
+        action="send",
+        transfer_code=code,
+    )
+    db.add(record)
+    db.commit()
+
     return transfer
 
 
@@ -64,14 +93,14 @@ def verify_code(db: Session, code: str) -> tuple[bool, str]:
 
     now = datetime.utcnow()
 
+    # Permanent transfers never expire
+    if not transfer.permanent and transfer.expires_at < now:
+        return False, "资源已过期"
+
     # Check lock
     if transfer.locked_until and transfer.locked_until > now:
         remaining = (transfer.locked_until - now).seconds
         return False, f"密码已锁定，请 {remaining} 秒后重试"
-
-    # Check expiry
-    if transfer.expires_at < now:
-        return False, "资源已过期"
 
     # Reset fail count if unlocked
     if transfer.locked_until and transfer.locked_until <= now:
@@ -100,13 +129,24 @@ def record_fail(db: Session, code: str) -> tuple[bool, str]:
     return False, f"密码错误，还可尝试 {remaining} 次"
 
 
-def get_transfer(db: Session, code: str) -> Transfer:
-    """Get transfer by code and increment download count."""
+def get_transfer(db: Session, code: str, user_id: int = None, client_ip: str = None) -> Transfer:
+    """Get transfer by code and increment download count. Records retrieve action."""
     transfer = db.query(Transfer).filter(Transfer.code == code).first()
     if transfer:
         transfer.download_count = (transfer.download_count or 0) + 1
         transfer.fail_count = 0
         db.commit()
+
+        # Record retrieve action
+        record = TransferRecord(
+            user_id=user_id,
+            action="retrieve",
+            transfer_code=code,
+            client_ip=client_ip,
+        )
+        db.add(record)
+        db.commit()
+
     return transfer
 
 
@@ -133,10 +173,17 @@ async def get_file_content(code: str, filename: str) -> tuple[bytes, str]:
 
 
 def cleanup_expired(db: Session):
-    """Delete expired transfers and their files."""
+    """Delete expired transfers and their files.
+
+    Permanent transfers (user's text) are never deleted.
+    """
     storage = _get_storage()
     now = datetime.utcnow()
-    expired = db.query(Transfer).filter(Transfer.expires_at < now).all()
+    expired = (
+        db.query(Transfer)
+        .filter(Transfer.expires_at < now, Transfer.permanent == False)
+        .all()
+    )
     count = 0
     for t in expired:
         # Delete files from storage (sync context in cleanup)
@@ -152,6 +199,8 @@ def cleanup_expired(db: Session):
 
         # Delete file records
         db.query(TransferFile).filter(TransferFile.transfer_code == t.code).delete()
+        # Delete transfer records
+        db.query(TransferRecord).filter(TransferRecord.transfer_code == t.code).delete()
         # Delete transfer record
         db.delete(t)
         count += 1

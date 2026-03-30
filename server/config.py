@@ -1,4 +1,6 @@
 import os
+import json
+import secrets
 from pathlib import Path
 from pydantic_settings import BaseSettings
 from typing import Optional
@@ -46,6 +48,11 @@ class Settings(BaseSettings):
     MAX_FILES_PER_TRANSFER: int = 10
     MAX_FAIL_ATTEMPTS: int = 5
     LOCK_DURATION_MINUTES: int = 1
+
+    # JWT settings
+    JWT_SECRET: str = ""
+    JWT_ALGORITHM: str = "HS256"
+    JWT_EXPIRE_HOURS: int = 168  # 7 days
 
     @property
     def db_url(self) -> str:
@@ -96,3 +103,18 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+# Load JWT_SECRET from config.json if not set in env
+if not settings.JWT_SECRET and CONFIG_FILE.exists():
+    try:
+        with open(CONFIG_FILE, "r") as f:
+            cfg = json.load(f)
+            jwt_secret = cfg.get("JWT_SECRET", "")
+            if jwt_secret:
+                settings.JWT_SECRET = jwt_secret
+    except (json.JSONDecodeError, IOError):
+        pass
+
+# Generate a temporary JWT_SECRET if still empty (will be persisted on startup)
+if not settings.JWT_SECRET:
+    settings.JWT_SECRET = secrets.token_urlsafe(32)

@@ -43,3 +43,17 @@
 - Docker: `docker compose up -d`，端口 7895
 - 首次启动: 访问 http://localhost:7895 进入安装向导，配置数据库和存储
 - 路由守卫: 前端检测 `/api/setup/status`，未初始化自动重定向到 `/setup`
+
+## 用户系统
+- 可选登录: 未登录可用全部功能，登录后文本永久保存 + 操作记录
+- 认证方式: JWT (python-jose + passlib bcrypt)，HS256，7 天过期
+- 后端关键文件: deps.py (get_current_user), services/auth_service.py, routes/auth.py, routes/records.py
+- 前端关键文件: composables/useAuth.ts, components/LoginDialog.vue, views/RecordsView.vue
+- 数据模型: User(id, username, hashed_password, created_at)
+- Transfer 新增字段: user_id(FK nullable), permanent(Boolean)
+- TransferRecord(id, user_id, action(send/retrieve), transfer_code, client_ip, created_at)
+- LoginDialog 使用 ElDialog + ElTabs，AppHeader 有用户下拉菜单
+
+## Logo
+- 方案 C: 极简圆虫，橙红渐变(#f97316 → #ef4444)，白底(#fefefe)
+- SVG 定义位置: favicon.svg, AppHeader.vue, HomeView.vue, LoginDialog.vue

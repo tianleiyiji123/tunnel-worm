@@ -112,8 +112,19 @@ async def test_db(req: TestDbRequest):
                 pass
             engine.dispose()
             return {"success": True, "message": "MySQL 连接测试成功"}
+    except ImportError:
+        return {
+            "success": False,
+            "message": "当前环境未安装 pymysql 驱动。Docker 镜像默认使用 SQLite，如需 MySQL 请自行安装 pymysql：pip install pymysql",
+        }
     except Exception as e:
-        return {"success": False, "message": f"连接失败: {str(e)}"}
+        err = str(e)
+        if "No module named" in err:
+            return {
+                "success": False,
+                "message": f"缺少数据库驱动（{err}）。如需 MySQL 请安装 pymysql：pip install pymysql",
+            }
+        return {"success": False, "message": f"MySQL 连接失败: {err}"}
 
 
 @router.post("/test-storage")
@@ -171,8 +182,17 @@ async def test_storage(req: TestStorageRequest):
             return {"success": True, "message": "腾讯云 COS 连接测试成功"}
         else:
             return {"success": False, "message": f"不支持的存储类型: {req.storage_type}"}
-    except ImportError:
-        return {"success": False, "message": "缺少对应的存储 SDK，请安装依赖后重试"}
+    except ImportError as e:
+        missing = str(e).split("'")[1] if "'" in str(e) else "对应"
+        sdk_map = {
+            "minio": "minio (pip install minio)",
+            "oss2": "oss2 (pip install oss2)",
+            "qcloud_cos": "cos-python-sdk-v5 (pip install cos-python-sdk-v5)",
+        }
+        for mod, hint in sdk_map.items():
+            if mod in str(e):
+                return {"success": False, "message": f"缺少存储 SDK：{hint}。Docker 默认镜像未包含云存储 SDK，如需使用请在容器内手动安装。"}
+        return {"success": False, "message": f"缺少存储 SDK（{missing}）。Docker 默认镜像未包含云存储 SDK，如需使用请在容器内手动安装。"}
     except Exception as e:
         return {"success": False, "message": f"连接失败: {str(e)}"}
 
@@ -182,67 +202,72 @@ async def setup_finish(req: SetupFinishRequest):
     """Save configuration and initialize the system."""
     _guard_already_initialized()
 
-    # Build config dict
-    config = {"db_type": req.db_type, "storage_type": req.storage_type}
+    try:
+        # Build config dict
+        config = {"db_type": req.db_type, "storage_type": req.storage_type}
 
-    if req.db_type == "mysql":
-        if not all([req.db_host, req.db_user, req.db_password, req.db_name]):
-            raise HTTPException(status_code=400, detail="MySQL 模式需填写完整数据库连接信息")
-        config.update({
-            "db_host": req.db_host,
-            "db_port": req.db_port or 3306,
-            "db_user": req.db_user,
-            "db_password": req.db_password,
-            "db_name": req.db_name,
-        })
+        if req.db_type == "mysql":
+            if not all([req.db_host, req.db_user, req.db_password, req.db_name]):
+                raise HTTPException(status_code=400, detail="MySQL 模式需填写完整数据库连接信息")
+            config.update({
+                "db_host": req.db_host,
+                "db_port": req.db_port or 3306,
+                "db_user": req.db_user,
+                "db_password": req.db_password,
+                "db_name": req.db_name,
+            })
 
-    if req.upload_dir:
-        config["upload_dir"] = req.upload_dir
+        if req.upload_dir:
+            config["upload_dir"] = req.upload_dir
 
-    # Storage config
-    if req.storage_type == "minio":
-        if not all([req.minio_endpoint, req.minio_access_key, req.minio_secret_key, req.minio_bucket]):
-            raise HTTPException(status_code=400, detail="MinIO 模式需填写完整凭证信息")
-        config.update({
-            "minio_endpoint": req.minio_endpoint,
-            "minio_access_key": req.minio_access_key,
-            "minio_secret_key": req.minio_secret_key,
-            "minio_bucket": req.minio_bucket,
-            "minio_secure": req.minio_secure or False,
-        })
-    elif req.storage_type == "alioss":
-        if not all([req.alioss_access_key_id, req.alioss_access_key_secret, req.alioss_bucket, req.alioss_endpoint]):
-            raise HTTPException(status_code=400, detail="阿里云 OSS 模式需填写完整凭证信息")
-        config.update({
-            "alioss_access_key_id": req.alioss_access_key_id,
-            "alioss_access_key_secret": req.alioss_access_key_secret,
-            "alioss_bucket": req.alioss_bucket,
-            "alioss_endpoint": req.alioss_endpoint,
-        })
-    elif req.storage_type == "tencentcos":
-        if not all([req.tencentcos_secret_id, req.tencentcos_secret_key, req.tencentcos_bucket, req.tencentcos_region]):
-            raise HTTPException(status_code=400, detail="腾讯云 COS 模式需填写完整凭证信息")
-        config.update({
-            "tencentcos_secret_id": req.tencentcos_secret_id,
-            "tencentcos_secret_key": req.tencentcos_secret_key,
-            "tencentcos_bucket": req.tencentcos_bucket,
-            "tencentcos_region": req.tencentcos_region,
-        })
+        # Storage config
+        if req.storage_type == "minio":
+            if not all([req.minio_endpoint, req.minio_access_key, req.minio_secret_key, req.minio_bucket]):
+                raise HTTPException(status_code=400, detail="MinIO 模式需填写完整凭证信息")
+            config.update({
+                "minio_endpoint": req.minio_endpoint,
+                "minio_access_key": req.minio_access_key,
+                "minio_secret_key": req.minio_secret_key,
+                "minio_bucket": req.minio_bucket,
+                "minio_secure": req.minio_secure or False,
+            })
+        elif req.storage_type == "alioss":
+            if not all([req.alioss_access_key_id, req.alioss_access_key_secret, req.alioss_bucket, req.alioss_endpoint]):
+                raise HTTPException(status_code=400, detail="阿里云 OSS 模式需填写完整凭证信息")
+            config.update({
+                "alioss_access_key_id": req.alioss_access_key_id,
+                "alioss_access_key_secret": req.alioss_access_key_secret,
+                "alioss_bucket": req.alioss_bucket,
+                "alioss_endpoint": req.alioss_endpoint,
+            })
+        elif req.storage_type == "tencentcos":
+            if not all([req.tencentcos_secret_id, req.tencentcos_secret_key, req.tencentcos_bucket, req.tencentcos_region]):
+                raise HTTPException(status_code=400, detail="腾讯云 COS 模式需填写完整凭证信息")
+            config.update({
+                "tencentcos_secret_id": req.tencentcos_secret_id,
+                "tencentcos_secret_key": req.tencentcos_secret_key,
+                "tencentcos_bucket": req.tencentcos_bucket,
+                "tencentcos_region": req.tencentcos_region,
+            })
 
-    # Save to config.json
-    save_config(config)
+        # Save to config.json
+        save_config(config)
 
-    # Apply config to running settings
-    apply_config(config)
+        # Apply config to running settings
+        apply_config(config)
 
-    # Reset and initialize database
-    reset_db_engine()
-    from database import init_db
-    init_db()
+        # Reset and initialize database
+        reset_db_engine()
+        from database import init_db
+        init_db()
 
-    # Initialize storage
-    from services.storage import get_storage
-    storage = get_storage()
-    await storage.ensure_bucket()
+        # Initialize storage
+        from services.storage import get_storage
+        storage = get_storage()
+        await storage.ensure_bucket()
 
-    return {"success": True, "message": "配置保存成功，系统初始化完成"}
+        return {"success": True, "message": "配置保存成功，系统初始化完成"}
+    except HTTPException:
+        raise  # Re-raise HTTPException as-is (400 errors etc.)
+    except Exception as e:
+        return {"success": False, "message": f"初始化失败: {str(e)}"}

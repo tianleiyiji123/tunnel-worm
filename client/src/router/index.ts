@@ -8,7 +8,6 @@ const router = createRouter({
       path: '/setup',
       name: 'setup',
       component: () => import('../views/SetupView.vue'),
-      meta: { skipInitCheck: true },
     },
     {
       path: '/',
@@ -23,16 +22,10 @@ const router = createRouter({
   ],
 })
 
-// Navigation guard: redirect to /setup if not initialized
+// Navigation guard: redirect based on init status
 let _initialized: boolean | null = null
 
 router.beforeEach(async (to, _from, next) => {
-  // Skip check for setup page itself
-  if (to.meta.skipInitCheck) {
-    next()
-    return
-  }
-
   // Cache the init status for this session
   if (_initialized === null) {
     try {
@@ -44,11 +37,23 @@ router.beforeEach(async (to, _from, next) => {
     }
   }
 
-  if (!_initialized) {
-    next({ name: 'setup' })
-  } else {
-    next()
+  // Already initialized → block /setup access, redirect to home
+  if (_initialized && to.name === 'setup') {
+    next({ name: 'send' })
+    return
   }
+
+  // Not initialized → redirect to /setup for any other route
+  if (!_initialized && to.name !== 'setup') {
+    next({ name: 'setup' })
+    return
+  }
+
+  next()
 })
+
+export function markInitialized() {
+  _initialized = true
+}
 
 export default router

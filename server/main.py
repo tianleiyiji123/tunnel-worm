@@ -1,11 +1,17 @@
-from fastapi import FastAPI
+from pathlib import Path
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from contextlib import asynccontextmanager
 from database import init_db, get_session_local
 from services import transfer_service
 from routes.transfer import router as transfer_router
 from routes.setup import router as setup_router
+
+# Frontend static files directory (Docker: /app/static, dev: not used)
+STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
 
 scheduler = AsyncIOScheduler()
 
@@ -84,3 +90,18 @@ app.include_router(transfer_router)
 async def health_check():
     from setup_config import is_initialized
     return {"status": "ok", "service": "suisuichong", "initialized": is_initialized()}
+
+
+# Serve frontend static files (only in Docker / production)
+if STATIC_DIR.is_dir():
+    app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+
+
+# SPA catch-all: return index.html for any non-API, non-static path
+@app.get("/{path:path}")
+async def spa_catchall(request: Request, path: str):
+    """Serve index.html for client-side routing (Vue Router history mode)."""
+    index_path = STATIC_DIR / "index.html"
+    if index_path.is_file():
+        return FileResponse(str(index_path))
+    return {"error": "Frontend not found. Run 'npm run build' in client/ or use Docker."}

@@ -49,7 +49,7 @@ class Settings(BaseSettings):
 
     @property
     def db_url(self) -> str:
-        if self.DB_TYPE == "sqlite":
+        if self.effective_db_type == "sqlite":
             DATA_DIR.mkdir(parents=True, exist_ok=True)
             return f"sqlite:///{DATA_DIR / 'suisuichong.db'}"
         return (
@@ -63,8 +63,12 @@ class Settings(BaseSettings):
         """Return 'sqlite' or 'mysql' based on DB_TYPE."""
         if self.DB_TYPE in ("sqlite", "mysql"):
             return self.DB_TYPE
-        # Auto-detect: if no MySQL config, use sqlite
-        return "sqlite" if not self.DB_HOST or self.DB_HOST == "localhost" else "mysql"
+        # Auto-detect: if .env file loaded with a non-default DB_HOST, use mysql
+        # Otherwise default to sqlite (safe for Docker fresh start)
+        _env_path = Path(__file__).resolve().parent.parent / ".env"
+        if _env_path.exists():
+            return "mysql"
+        return "sqlite"
 
     @property
     def upload_dir_resolved(self) -> str:

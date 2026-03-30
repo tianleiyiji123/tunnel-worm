@@ -1,13 +1,10 @@
-version: '3.8'
-
 # ============================================================
 # 隧隧虫 - 单镜像部署（推荐）
-# 用法: docker run -p 80:80 -v suisuichong_data:/app/data suisuichong
-# 首次启动访问 http://localhost 进入安装向导
+# 用法: docker compose up -d
+# 首次启动访问 http://localhost:7895 进入安装向导
 # ============================================================
 
 services:
-  # ---- 单镜像模式（推荐，Docker Hub 发布方式） ----
   web:
     build:
       context: .
@@ -15,7 +12,7 @@ services:
     container_name: suisuichong
     restart: unless-stopped
     ports:
-      - "80:80"
+      - "7895:7895"
     volumes:
       - suisuichong_data:/app/data
     environment:

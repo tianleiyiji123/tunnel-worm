@@ -89,7 +89,6 @@
       <!-- Action -->
       <div class="flex items-center justify-between mt-8">
         <button
-          v-if="dbType === 'mysql'"
           @click="handleTestDb"
           :disabled="testing"
           class="px-5 py-2.5 text-sm font-medium text-[#2D6A4F] bg-[#2D6A4F]/10 rounded-xl
@@ -105,7 +104,6 @@
             测试连接
           </span>
         </button>
-        <div v-else></div>
 
         <button @click="nextStep" class="brand-btn-primary flex items-center gap-2">
           下一步
@@ -323,18 +321,21 @@ function prevStep() {
 }
 
 async function handleTestDb() {
-  if (dbType.value !== 'mysql') return
   testing.value = true
   try {
-    const result = await testDbConnection({
-      db_type: 'mysql',
-      ...mysqlForm,
-    })
+    const payload: Record<string, unknown> = { db_type: dbType.value }
+    if (dbType.value === 'mysql') {
+      Object.assign(payload, mysqlForm)
+    }
+    const result = await testDbConnection(payload)
     if (result.success) {
       ElMessage.success(result.message)
     } else {
       ElMessage.error(result.message)
     }
+  } catch (e: any) {
+    const msg = e.response?.data?.detail || e.response?.data?.message || e.message || '请求失败'
+    ElMessage.error(msg)
   } finally {
     testing.value = false
   }
@@ -366,6 +367,9 @@ async function handleTestStorage() {
     } else {
       ElMessage.error(result.message)
     }
+  } catch (e: any) {
+    const msg = e.response?.data?.detail || e.response?.data?.message || e.message || '请求失败'
+    ElMessage.error(msg)
   } finally {
     testing.value = false
   }
@@ -410,11 +414,19 @@ async function handleFinish() {
     if (result.success) {
       ElMessage.success('初始化完成！即将跳转...')
       setTimeout(() => {
-        router.push('/')
+        // 跳转前标记已初始化，防止路由守卫缓存拦截
+        ;(async () => {
+          const { markInitialized } = await import('../router')
+          markInitialized()
+          router.push('/')
+        })()
       }, 2000)
     } else {
       ElMessage.error(result.message)
     }
+  } catch (e: any) {
+    const msg = e.response?.data?.detail || e.response?.data?.message || e.message || '安装失败，请检查配置后重试'
+    ElMessage.error(msg)
   } finally {
     finishing.value = false
   }

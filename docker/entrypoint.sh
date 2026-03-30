@@ -6,10 +6,7 @@ echo "🚀 Starting SuiSuiChong..."
 # Ensure data directory exists
 mkdir -p /app/data /app/data/uploads
 
-# Start services directly — setup wizard handles first-time config
-echo "✅ Starting services..."
-
-# Start Nginx and Uvicorn
-nginx
+# Start Uvicorn directly (no Nginx)
+echo "✅ Starting Uvicorn on port 7895..."
 cd /app/server
-exec uvicorn main:app --host 0.0.0.0 --port 8000
+exec uvicorn main:app --host 0.0.0.0 --port 7895 --timeout-keep-alive 120

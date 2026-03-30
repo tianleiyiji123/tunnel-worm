@@ -11,6 +11,7 @@
 - **数据库**: SQLite（默认）+ MySQL（可选），延迟初始化
 - **存储**: 抽象存储层 (local / MinIO / 阿里云 OSS / 腾讯云 COS)
 - **部署**: Docker 单镜像 + Web 安装向导（私有化部署，pull 即用）
+- **架构**: 纯 Uvicorn 单进程（无 Nginx），FastAPI StaticFiles + SPA catch-all 服务前端
 
 ## 关键决策
 - 密码: 4 位数字 + 5 次错误后锁定 1 分钟（防爆破）
@@ -21,6 +22,9 @@
 - 配置管理: 开发用 `.env`，Docker 用 `config.json`（安装向导写入 `/app/data/config.json`）
 - 延迟初始化: database.py engine/SessionLocal + transfer_service.py storage + main.py storage 都改为按需初始化
 - Docker 依赖拆分: requirements.txt（完整，开发用）/ requirements-docker.txt（精简，镜像用，不含 pymysql 和云 SDK）
+- 无 Nginx: FastAPI StaticFiles 挂载 /static → /app/static，SPA catch-all 返回 index.html
+- effective_db_type 检测: .env 存在则 MySQL，否则 SQLite（Docker 默认 SQLite）
+- 端口: 应用默认 7895
 
 ## 项目结构
 - `client/` - Vue 3 前端 (Vite)
@@ -30,12 +34,12 @@
 - `server/services/storage/` - 存储抽象层 (base/local/minio_backend/alioss/tencentcos)
 - `server/requirements-docker.txt` - Docker 镜像精简依赖
 - `client/src/views/SetupView.vue` - 安装向导前端页面
-- `docker/` - Dockerfile(多阶段构建), nginx.conf, entrypoint.sh
+- `docker/` - Dockerfile(多阶段构建), nginx.conf(已弃用), entrypoint.sh
 - `.dockerignore` - Docker 构建排除
 - `docker-compose.yml` - 单服务编排
 
 ## 使用方式
 - 开发: 前端 `cd client && npm run dev`, 后端 `cd server && python main.py`（使用 .env）
-- Docker: `docker run -d -p 80:80 -v suisuichong_data:/app/data suisuichong`
-- 首次启动: 访问 http://localhost 进入安装向导，配置数据库和存储
+- Docker: `docker compose up -d`，端口 7895
+- 首次启动: 访问 http://localhost:7895 进入安装向导，配置数据库和存储
 - 路由守卫: 前端检测 `/api/setup/status`，未初始化自动重定向到 `/setup`

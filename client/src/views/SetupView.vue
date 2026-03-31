@@ -3,26 +3,30 @@
     <!-- Header -->
     <div class="text-center mb-8 animate-tunnel-emerge">
       <div class="w-20 h-20 mx-auto mb-5 bg-[#fefefe] rounded-3xl flex items-center justify-center animate-worm-wiggle shadow-md shadow-black/5 border border-black/5">
-        <svg width="56" height="56" viewBox="22 62 137 82" xmlns="http://www.w3.org/2000/svg">
+        <svg width="56" height="56" viewBox="60 130 330 200" xmlns="http://www.w3.org/2000/svg">
           <defs>
             <linearGradient id="setupGrad" x1="0%" y1="0%" x2="100%" y2="100%">
               <stop offset="0%" style="stop-color:#f97316"/>
               <stop offset="100%" style="stop-color:#ef4444"/>
             </linearGradient>
           </defs>
-          <path d="M40 120 Q70 80 100 100 Q130 120 160 80" fill="none" stroke="#f9731626" stroke-width="20" stroke-linecap="round"/>
-          <path d="M40 120 Q70 80 100 100 Q130 120 160 80" fill="none" stroke="url(#setupGrad)" stroke-width="4" stroke-linecap="round"/>
-          <circle cx="44" cy="118" r="14" fill="url(#setupGrad)"/>
-          <circle cx="38" cy="115" r="5" fill="white"/>
-          <circle cx="39.5" cy="114" r="2.5" fill="#fefefe"/>
-          <circle cx="40" cy="113" r="1.4" fill="#1a1a1a"/>
-          <path d="M36 120 Q44 127 52 120" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
-          <circle cx="58" cy="106" r="10" fill="url(#setupGrad)" opacity="0.7"/>
-          <circle cx="74" cy="96" r="11" fill="url(#setupGrad)" opacity="0.75"/>
-          <circle cx="92" cy="100" r="12" fill="url(#setupGrad)" opacity="0.8"/>
-          <circle cx="110" cy="108" r="11" fill="url(#setupGrad)" opacity="0.75"/>
-          <circle cx="126" cy="100" r="10" fill="url(#setupGrad)" opacity="0.7"/>
-          <circle cx="140" cy="88" r="9" fill="url(#setupGrad)" opacity="0.6"/>
+          <path d="M100 300 Q130 270 160 285 Q190 300 220 270 Q250 240 280 260 Q310 280 340 250 Q370 220 400 240 Q420 255 420 255" fill="none" stroke="#f9731618" stroke-width="36" stroke-linecap="round"/>
+          <ellipse cx="100" cy="300" rx="24" ry="22" fill="url(#setupGrad)" opacity="0.5"/>
+          <ellipse cx="152" cy="278" rx="26" ry="24" fill="url(#setupGrad)" opacity="0.55"/>
+          <ellipse cx="208" cy="268" rx="28" ry="26" fill="url(#setupGrad)" opacity="0.6"/>
+          <ellipse cx="266" cy="262" rx="30" ry="28" fill="url(#setupGrad)" opacity="0.65"/>
+          <ellipse cx="326" cy="250" rx="32" ry="30" fill="url(#setupGrad)" opacity="0.7"/>
+          <ellipse cx="386" cy="238" rx="34" ry="32" fill="url(#setupGrad)" opacity="0.8"/>
+          <ellipse cx="420" cy="238" rx="48" ry="46" fill="url(#setupGrad)"/>
+          <ellipse cx="432" cy="228" rx="11" ry="12" fill="white"/>
+          <ellipse cx="454" cy="226" rx="10" ry="11" fill="white"/>
+          <circle cx="435" cy="227" r="6" fill="#1a1a1a"/>
+          <circle cx="457" cy="225" r="5.5" fill="#1a1a1a"/>
+          <circle cx="437" cy="225" r="2.2" fill="white"/>
+          <circle cx="459" cy="223" r="2" fill="white"/>
+          <path d="M432 248 Q443 256 454 246" fill="none" stroke="white" stroke-width="3" stroke-linecap="round"/>
+          <circle cx="425" cy="240" r="7" fill="#ff6b6b" opacity="0.25"/>
+          <circle cx="461" cy="238" r="6.5" fill="#ff6b6b" opacity="0.25"/>
         </svg>
       </div>
       <h1 class="text-3xl sm:text-4xl font-bold text-[#1B1B1B] mb-2">欢迎使用隧隧虫</h1>

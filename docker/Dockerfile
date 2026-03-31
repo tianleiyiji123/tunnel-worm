@@ -5,10 +5,6 @@
 # Optimized for Docker Hub distribution
 # ============================================================
 
-# ---- Build Arguments ----
-ARG VERSION=1.0.0
-ARG BUILD_DATE=unknown
-
 # ---- Stage 1: 前端构建 ----
 FROM node:20-alpine AS frontend-builder
 
@@ -20,6 +16,10 @@ RUN npx vite build
 
 # ---- Stage 2: 运行阶段 ----
 FROM python:3.11-slim
+
+# Re-declare ARGs to use in this stage
+ARG VERSION=1.0.0
+ARG BUILD_DATE=unknown
 
 # ---- Metadata Labels ----
 LABEL maintainer="tianleiyiji123"

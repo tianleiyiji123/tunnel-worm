@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🐛 隧隧虫 (SuiSuiChong)
+# 🐛 隧隧虫 (Tunnel Worm)
 
 **跨设备，传什么都可以。**
 
@@ -30,58 +30,138 @@
 
 ## 📸 界面预览
 
-| 功能 | 截图                           |
-| ---- | ------------------------------ |
-| 首页 | ![首页](/images/send-text.png) |
+| 首页                           | 安装向导                   | 提取资源                      |
+| ------------------------------ | -------------------------- | ----------------------------- |
+| ![首页](/images/send-text.png) | ![登录](/images/login.png) | ![提取](/images/retrieve.png) |
 
 ---
 
 ## 🚀 快速开始
 
-```bash
-# 1. 启动服务
-docker compose up -d
+### 方法 1：Docker Hub 拉取（推荐）
 
-# 2. 访问安装向导
-open http://localhost:7895
+```bash
+docker run -d \
+  --name tunnel-worm \
+  -p 7895:7895 \
+  -v tunnel-worm_data:/app/data \
+  tianleiyiji123/tunnel-worm:latest
 ```
 
-首次启动会进入安装向导，配置数据库和存储后即可使用。数据存储在 Docker Volume `suisuichong_data` 中。
+### 方法 2：Docker Compose
 
-> 💡 安装向导支持 SQLite（零配置）和 MySQL，存储支持本地 / MinIO / 阿里云 OSS / 腾讯云 COS。
+克隆仓库并启动：
 
-### 本地开发
+```bash
+git clone https://github.com/tianleiyiji123/tunnel-worm.git
+cd tunnel-worm
+docker compose up -d
+```
+
+### 方法 3：Docker 自定义构建
+
+```bash
+git clone https://github.com/tianleiyiji123/tunnel-worm.git
+cd tunnel-worm
+docker compose build --no-cache && docker compose up -d
+```
+
+启动后打开浏览器访问 **http://localhost:7895**，进入安装向导。
+
+---
+
+## 🛠️ 安装向导
+
+首次启动时，应用会自动进入 **Web 安装向导**，通过浏览器完成所有配置，无需编辑任何配置文件。
+
+安装向导分两步：
+
+### 第一步：数据库配置
+
+| 选项               | 说明                                       | 适用场景                    |
+| ------------------ | ------------------------------------------ | --------------------------- |
+| **SQLite（推荐）** | 零配置，数据文件存储在容器内部             | 个人使用、轻量部署          |
+| **MySQL**          | 需要填写主机、端口、用户名、密码、数据库名 | 已有 MySQL 服务、高并发场景 |
+
+选择 MySQL 时，向导页面会展开表单，填写连接信息后点击「测试连接」验证是否可用。
+
+> 💡 Docker 默认镜像不包含 MySQL 驱动，如需使用 MySQL 请自行安装 `pymysql`。
+
+### 第二步：存储配置
+
+| 选项                     | 说明                       | 需要填写的凭证                                     |
+| ------------------------ | -------------------------- | -------------------------------------------------- |
+| **容器内部存储（推荐）** | 零配置，文件存储在容器内部 | 无                                                 |
+| **MinIO**                | 兼容 S3 的自建对象存储     | Endpoint、Access Key、Secret Key、Bucket           |
+| **阿里云 OSS**           | 阿里云对象存储             | Access Key ID、Access Key Secret、Endpoint、Bucket |
+| **腾讯云 COS**           | 腾讯云对象存储             | Secret ID、Secret Key、Region、Bucket              |
+
+选择对象存储后，同样可以点击「测试连接」验证凭证是否正确。
+
+> 💡 Docker 默认镜像不包含云存储 SDK。如需使用对象存储，需要在容器内手动安装对应 SDK，或自行构建包含 SDK 的镜像。
+
+### 配置持久化
+
+安装向导完成后，所有配置写入 `/app/data/config.json`，后续启动自动加载，无需重新配置。
+
+数据目录结构：
+
+```
+/app/data/
+├── config.json          # 安装向导生成的配置（数据库 + 存储凭证）
+├── app.db               # SQLite 数据库文件（选择 SQLite 时）
+└── uploads/             # 本地存储的文件（选择容器内部存储时）
+```
+
+> ⚠️ 以上数据通过 Docker Volume `tunnel-worm_data` 持久化，`docker rm` 不会丢失数据。
+
+### 重新配置
+
+如需重新运行安装向导，删除 Volume 中的配置文件后重启容器：
+
+```bash
+# 进入容器删除配置
+docker exec tunnel-worm rm /app/data/config.json
+
+# 重启容器
+docker restart tunnel-worm
+```
+
+重启后会自动重新进入安装向导。
+
+### 备份数据
+
+```bash
+# 备份整个数据目录
+docker run --rm -v tunnel-worm_data:/data -v $(pwd):/backup \
+  alpine tar czf /backup/tunnel-worm-backup.tar.gz /data
+```
+
+---
+
+## 💻 本地开发
 
 **前置要求**: Python 3.10+, Node.js 18+
 
 ```bash
-# 克隆项目
-git clone https://github.com/yourname/suisuichong.git
-cd suisuichong
+git clone https://github.com/tianleiyiji123/tunnel-worm.git
+cd tunnel-worm
 
 # ---- 后端 ----
 cd server
 pip install -r requirements.txt
-cp .env.example .env   # 编辑数据库和存储配置
-python main.py          # 启动后端 http://localhost:7895
+cp ../.env.example .env   # 编辑 .env 配置数据库和存储
+python main.py             # 启动后端 http://localhost:7895
 
 # ---- 前端（新终端） ----
 cd client
 npm install
-npm run dev             # 启动前端 http://localhost:5173
+npm run dev                # 启动前端 http://localhost:5173
 ```
 
-> 开发模式下前端通过 Vite proxy 转发 API 到后端。
+> 开发模式下使用 `.env` 文件配置（而非安装向导），前端通过 Vite proxy 转发 API 到后端。
 
-### Docker 自定义构建
-
-```bash
-# 重新构建镜像（代码变更后）
-docker compose build --no-cache
-
-# 重建并启动
-docker compose up -d
-```
+---
 
 ## 📖 使用指南
 
@@ -126,6 +206,10 @@ docker compose up -d
 │  │  Auth   │ Transfer │  Records     │  │
 │  │  JWT    │  CRUD    │  Operation   │  │
 │  └─────────┴──────────┴──────────────┘  │
+│  ┌──────────────────────────────────┐   │
+│  │       Web 安装向导 (Setup)       │   │
+│  │  数据库配置 / 存储配置 / 测试连接 │   │
+│  └──────────────────────────────────┘   │
 └──────────────────┬──────────────────────┘
                    │
 ┌──────────────────▼──────────────────────┐
@@ -150,7 +234,7 @@ docker compose up -d
 ## 📁 项目结构
 
 ```
-suisuichong/
+tunnel-worm/
 ├── client/                  # Vue 3 前端
 │   ├── src/
 │   │   ├── api/             # Axios API 封装 + 拦截器
@@ -167,7 +251,7 @@ suisuichong/
 │   │   │   ├── HomeView.vue       # 首页（发送资源）
 │   │   │   ├── RetrieveView.vue   # 提取资源
 │   │   │   ├── RecordsView.vue    # 操作记录
-│   │   │   └── SetupView.vue      # 安装向导
+│   │   │   └── SetupView.vue      # 安装向导（数据库+存储配置）
 │   │   ├── router/          # 路由配置 + 守卫
 │   │   └── styles/          # 全局样式
 │   └── public/              # 静态资源 (favicon.svg)
@@ -197,6 +281,7 @@ suisuichong/
 │   ├── Dockerfile           # 多阶段构建 (Node + Python)
 │   └── entrypoint.sh        # 启动脚本
 ├── docker-compose.yml       # 单服务编排
+├── .env.example             # 环境变量模板（开发用，Docker 用户无需关注）
 └── README.md
 ```
 
@@ -242,16 +327,27 @@ suisuichong/
 
 ## 🔧 配置
 
-### 环境变量 / .env
+### 配置方式
+
+| 部署方式     | 配置方式             | 说明                                 |
+| ------------ | -------------------- | ------------------------------------ |
+| **Docker**   | Web 安装向导（推荐） | 浏览器中完成配置，写入 `config.json` |
+| **Docker**   | 环境变量             | `docker run -e DB_TYPE=mysql ...`    |
+| **本地开发** | `.env` 文件          | `cp .env.example .env` 后编辑        |
+
+> 💡 **Docker 用户推荐使用安装向导**，无需手动编辑任何文件。安装向导的配置会持久化到 `/app/data/config.json`，优先级高于环境变量。
+
+### 环境变量
 
 | 变量                     | 说明                                     | 默认值         |
 | ------------------------ | ---------------------------------------- | -------------- |
+| `DATA_DIR`               | 数据目录（Docker 默认 `/app/data`）      | `./data`       |
 | `DB_TYPE`                | 数据库类型 (sqlite/mysql)                | 空（自动检测） |
 | `DB_HOST`                | MySQL 主机                               | localhost      |
 | `DB_PORT`                | MySQL 端口                               | 3306           |
-| `DB_USER`                | MySQL 用户名                             | suisuichong    |
-| `DB_PASSWORD`            | MySQL 密码                               | suisuichong123 |
-| `DB_NAME`                | MySQL 数据库名                           | suisuichong    |
+| `DB_USER`                | MySQL 用户名                             | tunnelworm     |
+| `DB_PASSWORD`            | MySQL 密码                               | tunnelworm123  |
+| `DB_NAME`                | MySQL 数据库名                           | tunnelworm     |
 | `STORAGE_TYPE`           | 存储类型 (local/minio/alioss/tencentcos) | local          |
 | `TRANSFER_EXPIRE_HOURS`  | 资源过期时间（小时）                     | 24             |
 | `MAX_FILE_SIZE_MB`       | 单文件最大大小 (MB)                      | 50             |
@@ -260,8 +356,6 @@ suisuichong/
 | `LOCK_DURATION_MINUTES`  | 锁定时长（分钟）                         | 1              |
 | `JWT_SECRET`             | JWT 签名密钥（自动生成）                 | —              |
 | `JWT_EXPIRE_HOURS`       | Token 有效期（小时）                     | 168 (7 天)     |
-
-> Docker 部署时通过 Web 安装向导配置，配置持久化到 `config.json`。
 
 ## 🛡️ 安全
 
@@ -278,5 +372,5 @@ suisuichong/
 ---
 
 <div align="center">
-Made with 🐛 by <a href="#">隧隧虫</a>
+Made with 🐛 by <a href="https://github.com/tianleiyiji123/tunnel-worm">Tunnel Worm</a>
 </div>

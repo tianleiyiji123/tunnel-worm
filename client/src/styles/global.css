@@ -1,0 +1,122 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --brand-green: #2D6A4F;
+    --brand-green-light: #40916C;
+    --brand-green-lighter: #52B788;
+    --brand-orange: #E76F51;
+    --brand-sand: #FEFAE0;
+    --brand-cream: #F5F0E8;
+  }
+
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: 'Noto Sans SC', system-ui, sans-serif;
+    background: linear-gradient(135deg, #F5F0E8 0%, #FEFAE0 50%, #F5F0E8 100%);
+    min-height: 100vh;
+    color: #1B1B1B;
+    overflow-x: hidden;
+  }
+
+  /* Subtle organic texture overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.03;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  }
+}
+
+@layer components {
+  .brand-card {
+    @apply bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg shadow-black/5 border border-white/60;
+  }
+
+  .brand-btn-primary {
+    @apply px-6 sm:px-8 py-3 bg-gradient-to-r from-[#2D6A4F] to-[#40916C] text-white font-medium
+           rounded-xl cursor-pointer transition-all duration-300
+           hover:shadow-lg hover:shadow-[#2D6A4F]/25 hover:-translate-y-0.5
+           active:translate-y-0 active:shadow-md;
+  }
+
+  .brand-btn-secondary {
+    @apply px-6 py-2.5 bg-[#E76F51] text-white font-medium
+           rounded-xl cursor-pointer transition-all duration-300
+           hover:bg-[#D4603F] hover:shadow-lg hover:shadow-[#E76F51]/25
+           active:bg-[#C4553A];
+  }
+
+  .brand-input {
+    @apply w-full px-4 py-3 bg-white/70 border-2 border-[#2D6A4F]/20 rounded-xl
+           text-base text-[#1B1B1B] placeholder-[#6B705C]/50
+           focus:outline-none focus:border-[#2D6A4F] focus:bg-white
+           focus:ring-4 focus:ring-[#2D6A4F]/10 transition-all duration-200;
+  }
+
+  .brand-textarea {
+    @apply brand-input resize-none min-h-[140px] sm:min-h-[180px];
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #2D6A4F30;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #2D6A4F50;
+}
+
+/* Element Plus overrides */
+.el-button--primary {
+  background: linear-gradient(135deg, #2D6A4F, #40916C) !important;
+  border-color: #2D6A4F !important;
+}
+
+.el-upload-dragger {
+  border-radius: 1rem !important;
+  border-color: #2D6A4F30 !important;
+  transition: all 0.3s !important;
+}
+
+.el-upload-dragger:hover {
+  border-color: #2D6A4F !important;
+  background-color: #D8F3DC30 !important;
+}
+
+.el-tabs__item.is-active {
+  color: #2D6A4F !important;
+}
+
+.el-tabs__active-bar {
+  background-color: #2D6A4F !important;
+}
+
+.el-message-box {
+  border-radius: 1rem !important;
+}

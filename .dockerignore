@@ -1,0 +1,36 @@
+# ====== Git =====
+.git
+.gitignore
+
+# ====== Python =====
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# ====== Node.js =====
+node_modules/
+client/dist/
+
+# ====== 环境变量（镜像内不需要）=====
+.env
+.env.*
+
+# ====== 构建产物 =====
+data/
+*.log
+
+# ====== IDE =====
+.vscode/
+.idea/
+
+# ====== WorkBuddy =====
+workbuddy/
+.workbuddy/
+
+# ====== 文档（Docker Hub README 单独处理）=====
+DOCKERHUB.md
+
+# ====== 系统 =====
+.DS_Store

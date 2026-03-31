@@ -1,0 +1,34 @@
+# ====== Python =====
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg
+.venv/
+venv/
+
+# ====== Node.js =====
+node_modules/
+client/dist/
+
+# ====== 环境变量 =====
+.env
+.env.*
+!.env.example
+
+# ====== 数据目录（运行时生成）=====
+data/
+
+# ====== IDE =====
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ====== 系统 =====
+.DS_Store
+Thumbs.db
+*.log
+
+# ====== WorkBuddy =====
+workbuddy/
+.workbuddy/

@@ -14,7 +14,7 @@
 - **架构**: 纯 Uvicorn 单进程（无 Nginx），FastAPI StaticFiles + SPA catch-all 服务前端
 
 ## 关键决策
-- 密码: 4 位数字 + 5 次错误后锁定 1 分钟（防爆破）
+- 密码: 4 位大写字母+数字混合（排除 O/0/I/1），32 个字符集；5 次错误后锁定 1 分钟（防爆破）
 - 资源过期: 24 小时，每小时自动清理
 - 数据库: SQLite（默认，Docker 镜像零配置）/ MySQL（可选，安装向导配置）
 - 品牌风格: 有机自然风，森林绿(#2D6A4F) + 暖土橙(#E76F51)
@@ -56,4 +56,5 @@
 
 ## Logo
 - 方案 C: 极简圆虫，橙红渐变(#f97316 → #ef4444)，白底(#fefefe)
-- SVG 定义位置: favicon.svg, AppHeader.vue, HomeView.vue, LoginDialog.vue
+- SVG viewBox: `22 62 137 82`
+- 统一位置: favicon.svg, AppHeader.vue, HomeView.vue, LoginDialog.vue, CodeDisplay.vue, SetupView.vue, RetrieveView.vue

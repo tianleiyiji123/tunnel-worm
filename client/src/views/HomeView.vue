@@ -9,27 +9,20 @@
               <stop offset="0%" style="stop-color:#f97316"/>
               <stop offset="100%" style="stop-color:#ef4444"/>
             </linearGradient>
-            <linearGradient id="heroGrad2" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" style="stop-color:#f97316;stop-opacity:0.15"/>
-              <stop offset="100%" style="stop-color:#ef4444;stop-opacity:0.15"/>
-            </linearGradient>
           </defs>
-          <path d="M40 120 Q70 80 100 100 Q130 120 160 80" fill="none" stroke="url(#heroGrad2)" stroke-width="20" stroke-linecap="round"/>
-          <path d="M40 120 Q70 80 100 100 Q130 120 160 80" fill="none" stroke="url(#heroGrad)" stroke-width="3" stroke-linecap="round"/>
-          <g>
-            <circle cx="50" cy="116" r="10" fill="url(#heroGrad)" opacity="0.5"/>
-            <circle cx="65" cy="100" r="11" fill="url(#heroGrad)" opacity="0.6"/>
-            <circle cx="82" cy="92" r="12" fill="url(#heroGrad)" opacity="0.7"/>
-            <circle cx="100" cy="96" r="13" fill="url(#heroGrad)" opacity="0.85"/>
-            <circle cx="118" cy="104" r="12" fill="url(#heroGrad)" opacity="0.7"/>
-            <circle cx="134" cy="96" r="11" fill="url(#heroGrad)" opacity="0.6"/>
-            <circle cx="148" cy="84" r="10" fill="url(#heroGrad)" opacity="0.5"/>
-            <circle cx="44" cy="118" r="10" fill="url(#heroGrad)"/>
-            <circle cx="40" cy="115" r="3.5" fill="white"/>
-            <circle cx="41.5" cy="114" r="1.8" fill="#fefefe"/>
-            <circle cx="42" cy="113.5" r="1" fill="#1a1a1a"/>
-            <path d="M38 120 Q44 125 50 120" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
-          </g>
+          <path d="M40 120 Q70 80 100 100 Q130 120 160 80" fill="none" stroke="#f9731626" stroke-width="20" stroke-linecap="round"/>
+          <path d="M40 120 Q70 80 100 100 Q130 120 160 80" fill="none" stroke="url(#heroGrad)" stroke-width="4" stroke-linecap="round"/>
+          <circle cx="44" cy="118" r="14" fill="url(#heroGrad)"/>
+          <circle cx="38" cy="115" r="5" fill="white"/>
+          <circle cx="39.5" cy="114" r="2.5" fill="#fefefe"/>
+          <circle cx="40" cy="113" r="1.4" fill="#1a1a1a"/>
+          <path d="M36 120 Q44 127 52 120" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+          <circle cx="58" cy="106" r="10" fill="url(#heroGrad)" opacity="0.7"/>
+          <circle cx="74" cy="96" r="11" fill="url(#heroGrad)" opacity="0.75"/>
+          <circle cx="92" cy="100" r="12" fill="url(#heroGrad)" opacity="0.8"/>
+          <circle cx="110" cy="108" r="11" fill="url(#heroGrad)" opacity="0.75"/>
+          <circle cx="126" cy="100" r="10" fill="url(#heroGrad)" opacity="0.7"/>
+          <circle cx="140" cy="88" r="9" fill="url(#heroGrad)" opacity="0.6"/>
         </svg>
       </div>
       <h1 class="text-3xl sm:text-4xl font-bold text-[#1B1B1B] mb-2">
@@ -121,7 +114,7 @@ import SendFile from '../components/SendFile.vue'
 import CodeDisplay from '../components/CodeDisplay.vue'
 
 const Worm = {
-  template: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 2c-2 0-4 1-5 3l-1 2c-1 2-1 4 0 6l3 5c1 2 3 3 5 3s4-1 5-3l3-5c1-2 1-4 0-6l-1-2c-1-2-3-3-5-3h-4z" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>`
+  template: `<svg width="20" height="20" viewBox="22 62 137 82" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="btnWormGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#fff;stop-opacity:0.9"/><stop offset="100%" style="stop-color:#fff;stop-opacity:0.7"/></linearGradient></defs><path d="M40 120 Q70 80 100 100 Q130 120 160 80" fill="none" stroke="white" stroke-width="20" stroke-linecap="round" opacity="0.2"/><path d="M40 120 Q70 80 100 100 Q130 120 160 80" fill="none" stroke="url(#btnWormGrad)" stroke-width="4" stroke-linecap="round"/><circle cx="44" cy="118" r="14" fill="url(#btnWormGrad)"/></svg>`
 }
 
 const tabs = [

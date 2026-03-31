@@ -39,7 +39,7 @@
           <a
             :href="file.download_url"
             download
-            class="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-white bg-[#2D6A4F] rounded-lg hover:bg-[#40916C] transition-colors opacity-0 group-hover:opacity-100"
+            class="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-white bg-[#2D6A4F] rounded-lg hover:bg-[#40916C] transition-colors sm:opacity-0 sm:group-hover:opacity-100 shrink-0"
           >
             <Download size="14" />
             下载

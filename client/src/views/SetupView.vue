@@ -2,13 +2,27 @@
   <div class="max-w-2xl mx-auto px-4 sm:px-6 py-12 sm:py-20">
     <!-- Header -->
     <div class="text-center mb-8 animate-tunnel-emerge">
-      <div class="w-20 h-20 mx-auto mb-5 bg-gradient-to-br from-[#52B788]/20 to-[#2D6A4F]/20 rounded-3xl flex items-center justify-center animate-worm-wiggle">
-        <svg width="44" height="44" viewBox="0 0 24 24" fill="none">
-          <path d="M12 4C9 4 6 6 6 10c0 3 2 5 4 7 1-1 2-1 2-1s1 0 2 1c2-2 4-4 4-7 0-4-3-6-6-6z" fill="#2D6A4F" opacity="0.3"/>
-          <path d="M12 2c-2 0-4 1-5 3l-1 2c-1 2-1 4 0 6l3 5c1 2 3 3 5 3s4-1 5-3l3-5c1-2 1-4 0-6l-1-2c-1-2-3-3-5-3h-4z" stroke="#2D6A4F" stroke-width="1.5" stroke-linecap="round" fill="none"/>
-          <circle cx="10" cy="9" r="1.2" fill="#2D6A4F"/>
-          <circle cx="14" cy="9" r="1.2" fill="#2D6A4F"/>
-          <path d="M10 12c0 0 1 1.5 2 1.5s2-1.5 2-1.5" stroke="#2D6A4F" stroke-width="1.2" stroke-linecap="round" fill="none"/>
+      <div class="w-20 h-20 mx-auto mb-5 bg-[#fefefe] rounded-3xl flex items-center justify-center animate-worm-wiggle shadow-md shadow-black/5 border border-black/5">
+        <svg width="56" height="56" viewBox="22 62 137 82" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="setupGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color:#f97316"/>
+              <stop offset="100%" style="stop-color:#ef4444"/>
+            </linearGradient>
+          </defs>
+          <path d="M40 120 Q70 80 100 100 Q130 120 160 80" fill="none" stroke="#f9731626" stroke-width="20" stroke-linecap="round"/>
+          <path d="M40 120 Q70 80 100 100 Q130 120 160 80" fill="none" stroke="url(#setupGrad)" stroke-width="4" stroke-linecap="round"/>
+          <circle cx="44" cy="118" r="14" fill="url(#setupGrad)"/>
+          <circle cx="38" cy="115" r="5" fill="white"/>
+          <circle cx="39.5" cy="114" r="2.5" fill="#fefefe"/>
+          <circle cx="40" cy="113" r="1.4" fill="#1a1a1a"/>
+          <path d="M36 120 Q44 127 52 120" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+          <circle cx="58" cy="106" r="10" fill="url(#setupGrad)" opacity="0.7"/>
+          <circle cx="74" cy="96" r="11" fill="url(#setupGrad)" opacity="0.75"/>
+          <circle cx="92" cy="100" r="12" fill="url(#setupGrad)" opacity="0.8"/>
+          <circle cx="110" cy="108" r="11" fill="url(#setupGrad)" opacity="0.75"/>
+          <circle cx="126" cy="100" r="10" fill="url(#setupGrad)" opacity="0.7"/>
+          <circle cx="140" cy="88" r="9" fill="url(#setupGrad)" opacity="0.6"/>
         </svg>
       </div>
       <h1 class="text-3xl sm:text-4xl font-bold text-[#1B1B1B] mb-2">欢迎使用隧隧虫</h1>
@@ -60,7 +74,7 @@
 
       <!-- MySQL config form -->
       <div v-if="dbType === 'mysql'" class="space-y-4 ml-1">
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label class="block text-sm font-medium text-[#6B705C] mb-1.5">主机</label>
             <input v-model="mysqlForm.db_host" class="brand-input" placeholder="localhost" />
@@ -70,7 +84,7 @@
             <input v-model.number="mysqlForm.db_port" class="brand-input" placeholder="3306" type="number" />
           </div>
         </div>
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label class="block text-sm font-medium text-[#6B705C] mb-1.5">用户名</label>
             <input v-model="mysqlForm.db_user" class="brand-input" placeholder="root" />
@@ -139,19 +153,19 @@
 
       <!-- MinIO form -->
       <div v-if="storageType === 'minio'" class="space-y-4 ml-1">
-        <div>
-          <label class="block text-sm font-medium text-[#6B705C] mb-1.5">Endpoint</label>
-          <input v-model="storageForm.minio_endpoint" class="brand-input" placeholder="http://minio:9000" />
-        </div>
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-[#6B705C] mb-1.5">Endpoint</label>
+            <input v-model="storageForm.minio_endpoint" class="brand-input" placeholder="http://minio:9000" />
+          </div>
           <div>
             <label class="block text-sm font-medium text-[#6B705C] mb-1.5">Access Key</label>
             <input v-model="storageForm.minio_access_key" class="brand-input" placeholder="minioadmin" />
           </div>
-          <div>
-            <label class="block text-sm font-medium text-[#6B705C] mb-1.5">Secret Key</label>
-            <input v-model="storageForm.minio_secret_key" class="brand-input" type="password" placeholder="••••••" />
-          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-[#6B705C] mb-1.5">Secret Key</label>
+          <input v-model="storageForm.minio_secret_key" class="brand-input" type="password" placeholder="••••••" />
         </div>
         <div>
           <label class="block text-sm font-medium text-[#6B705C] mb-1.5">Bucket 名称</label>
@@ -161,7 +175,7 @@
 
       <!-- Aliyun OSS form -->
       <div v-if="storageType === 'alioss'" class="space-y-4 ml-1">
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label class="block text-sm font-medium text-[#6B705C] mb-1.5">Access Key ID</label>
             <input v-model="storageForm.alioss_access_key_id" class="brand-input" placeholder="LTAI..." />
@@ -171,7 +185,7 @@
             <input v-model="storageForm.alioss_access_key_secret" class="brand-input" type="password" placeholder="••••••" />
           </div>
         </div>
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label class="block text-sm font-medium text-[#6B705C] mb-1.5">Endpoint</label>
             <input v-model="storageForm.alioss_endpoint" class="brand-input" placeholder="oss-cn-hangzhou.aliyuncs.com" />
@@ -185,7 +199,7 @@
 
       <!-- Tencent COS form -->
       <div v-if="storageType === 'tencentcos'" class="space-y-4 ml-1">
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label class="block text-sm font-medium text-[#6B705C] mb-1.5">Secret ID</label>
             <input v-model="storageForm.tencentcos_secret_id" class="brand-input" placeholder="AKID..." />
@@ -195,7 +209,7 @@
             <input v-model="storageForm.tencentcos_secret_key" class="brand-input" type="password" placeholder="••••••" />
           </div>
         </div>
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label class="block text-sm font-medium text-[#6B705C] mb-1.5">Region</label>
             <input v-model="storageForm.tencentcos_region" class="brand-input" placeholder="ap-guangzhou" />
@@ -208,7 +222,7 @@
       </div>
 
       <!-- Action -->
-      <div class="flex items-center justify-between mt-8">
+      <div class="flex flex-wrap items-center justify-between gap-3 mt-8">
         <div class="flex items-center gap-3">
           <button @click="prevStep" class="px-5 py-2.5 text-sm font-medium text-[#6B705C] bg-[#F5F0E8] rounded-xl cursor-pointer transition-all duration-200 hover:bg-[#F5F0E8]/80 flex items-center gap-1.5">
             <ChevronLeft :size="16" />

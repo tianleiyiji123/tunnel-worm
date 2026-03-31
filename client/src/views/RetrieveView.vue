@@ -2,14 +2,34 @@
   <div class="max-w-2xl mx-auto px-4 sm:px-6 py-12 sm:py-20">
     <!-- Hero -->
     <div class="text-center mb-10 animate-tunnel-emerge">
-      <div class="w-20 h-20 mx-auto mb-5 bg-gradient-to-br from-[#E76F51]/20 to-[#DDA15E]/20 rounded-3xl flex items-center justify-center">
-        <Download size="36" class="text-[#E76F51]" />
+      <div class="w-20 h-20 mx-auto mb-5 bg-[#fefefe] rounded-3xl flex items-center justify-center animate-worm-wiggle shadow-md shadow-black/5 border border-black/5">
+        <svg width="56" height="56" viewBox="22 62 137 82" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="retGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color:#f97316"/>
+              <stop offset="100%" style="stop-color:#ef4444"/>
+            </linearGradient>
+          </defs>
+          <path d="M40 120 Q70 80 100 100 Q130 120 160 80" fill="none" stroke="#f9731626" stroke-width="20" stroke-linecap="round"/>
+          <path d="M40 120 Q70 80 100 100 Q130 120 160 80" fill="none" stroke="url(#retGrad)" stroke-width="4" stroke-linecap="round"/>
+          <circle cx="44" cy="118" r="14" fill="url(#retGrad)"/>
+          <circle cx="38" cy="115" r="5" fill="white"/>
+          <circle cx="39.5" cy="114" r="2.5" fill="#fefefe"/>
+          <circle cx="40" cy="113" r="1.4" fill="#1a1a1a"/>
+          <path d="M36 120 Q44 127 52 120" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+          <circle cx="58" cy="106" r="10" fill="url(#retGrad)" opacity="0.7"/>
+          <circle cx="74" cy="96" r="11" fill="url(#retGrad)" opacity="0.75"/>
+          <circle cx="92" cy="100" r="12" fill="url(#retGrad)" opacity="0.8"/>
+          <circle cx="110" cy="108" r="11" fill="url(#retGrad)" opacity="0.75"/>
+          <circle cx="126" cy="100" r="10" fill="url(#retGrad)" opacity="0.7"/>
+          <circle cx="140" cy="88" r="9" fill="url(#retGrad)" opacity="0.6"/>
+        </svg>
       </div>
       <h1 class="text-3xl sm:text-4xl font-bold text-[#1B1B1B] mb-2">
         提取你的资源
       </h1>
       <p class="text-[#6B705C] text-base sm:text-lg">
-        输入发送方提供的 4 位数字密码
+        输入发送方提供的密码
       </p>
     </div>
 
@@ -70,7 +90,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { Download, Unlock, AlertCircle, CheckCircle } from 'lucide-vue-next'
+import { Unlock, AlertCircle, CheckCircle } from 'lucide-vue-next'
 import { ElMessage } from 'element-plus'
 import { retrieveTransfer } from '../api'
 import PasswordInput from '../components/PasswordInput.vue'
@@ -105,6 +125,7 @@ async function handleRetrieve() {
   } catch (err: any) {
     const detail = err.response?.data?.detail || '提取失败，请重试'
     errorMsg.value = detail
+    ElMessage.error(detail)
   } finally {
     loading.value = false
   }

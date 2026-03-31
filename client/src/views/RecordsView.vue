@@ -81,7 +81,7 @@
 
             <!-- Info -->
             <div class="flex-1 min-w-0">
-              <div class="flex items-center gap-2">
+              <div class="flex items-center gap-1.5 flex-wrap">
                 <span class="text-sm font-medium text-[#1B1B1B]">
                   {{ item.action === 'send' ? '发送' : '提取' }}
                 </span>

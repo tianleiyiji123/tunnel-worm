@@ -195,6 +195,9 @@ async function handleRegister() {
 .login-dialog :deep(.el-dialog) {
   border-radius: 1.25rem;
   overflow: hidden;
+  width: calc(100vw - 2rem) !important;
+  max-width: 400px;
+  margin: 0 auto;
 }
 
 .login-dialog :deep(.el-dialog__header) {
@@ -202,7 +205,13 @@ async function handleRegister() {
 }
 
 .login-dialog :deep(.el-dialog__body) {
-  padding: 2rem 1.75rem 1.5rem;
+  padding: 1.5rem 1.25rem;
+}
+
+@media (min-width: 400px) {
+  .login-dialog :deep(.el-dialog__body) {
+    padding: 2rem 1.75rem 1.5rem;
+  }
 }
 
 .login-tabs :deep(.el-tabs__header) {

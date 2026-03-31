@@ -1,4 +1,5 @@
 import random
+import string
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 
@@ -13,9 +14,15 @@ def _get_storage():
 
 
 def generate_code(db: Session) -> str:
-    """Generate a unique 4-digit code."""
+    """Generate a unique 4-character code (uppercase letters + digits).
+
+    Uses uppercase letters only to avoid ambiguity between l/1, O/0, I/1.
+    Excludes confusable characters: O, 0, I, 1.
+    """
+    # Exclude ambiguous chars: 0 (confused with O), 1 (confused with I/l), I (confused with 1), O (confused with 0)
+    chars = string.ascii_uppercase.replace('O', '').replace('I', '') + string.digits.replace('0', '').replace('1', '')
     for _ in range(100):
-        code = f"{random.randint(0, 9999):04d}"
+        code = ''.join(random.choices(chars, k=4))
         exists = db.query(Transfer).filter(Transfer.code == code).first()
         if not exists:
             return code

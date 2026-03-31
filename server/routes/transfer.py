@@ -20,7 +20,7 @@ async def create_transfer(
     db: Session = Depends(get_db),
     user: Optional[UserModel] = Depends(get_current_user),
 ):
-    """Upload text and/or files, create a transfer with a 4-digit code."""
+    """Upload text and/or files, create a transfer with a 4-character code."""
     # Validate type
     if type not in ("text", "file", "mixed"):
         raise HTTPException(status_code=400, detail="类型必须为 text、file 或 mixed")
@@ -76,12 +76,14 @@ async def create_transfer(
 @router.post("/verify")
 async def verify_code(req: TransferVerifyRequest, db: Session = Depends(get_db)):
     """Verify if a code is valid before retrieving."""
-    if not req.code or len(req.code) != 4 or not req.code.isdigit():
-        raise HTTPException(status_code=400, detail="请输入 4 位数字密码")
+    if not req.code or len(req.code) < 4:
+        raise HTTPException(status_code=400, detail="请输入完整的密码")
 
     valid, msg = transfer_service.verify_code(db, req.code)
     if not valid:
-        return {"valid": False, "message": msg}
+        # Record the failed attempt
+        _, fail_msg = transfer_service.record_fail(db, req.code)
+        return {"valid": False, "message": fail_msg}
     return {"valid": True, "message": ""}
 
 
@@ -93,11 +95,12 @@ async def get_transfer(
     user: Optional[UserModel] = Depends(get_current_user),
 ):
     """Retrieve transfer details by code."""
-    if len(code) != 4 or not code.isdigit():
-        raise HTTPException(status_code=400, detail="请输入 4 位数字密码")
+    if len(code) < 4:
+        raise HTTPException(status_code=400, detail="请输入完整的密码")
 
     valid, msg = transfer_service.verify_code(db, code)
     if not valid:
+        transfer_service.record_fail(db, code)
         raise HTTPException(status_code=404, detail=msg)
 
     # Get client IP

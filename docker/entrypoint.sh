@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 set -e
 
 echo "🚀 Starting SuiSuiChong..."
@@ -6,7 +6,7 @@ echo "🚀 Starting SuiSuiChong..."
 # Ensure data directory exists
 mkdir -p /app/data /app/data/uploads
 
-# Start Uvicorn directly (no Nginx)
+# Start Uvicorn directly
 echo "✅ Starting Uvicorn on port 7895..."
 cd /app/server
 exec uvicorn main:app --host 0.0.0.0 --port 7895 --timeout-keep-alive 120

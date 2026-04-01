@@ -5,6 +5,10 @@ from config import settings
 
 Base = declarative_base()
 
+# MySQL: set session timezone to Beijing (UTC+8)
+# SQLite ignores this, which is fine (SQLite stores datetimes as text)
+_MYSQL_TZ_INIT = "SET time_zone = '+08:00'"
+
 # Lazy-initialized engine and session factory
 _engine = None
 _SessionLocal = None
@@ -26,8 +30,9 @@ def _create_engine():
             settings.db_url,
             pool_recycle=3600,
             pool_pre_ping=True,
+            connect_args={"init_command": _MYSQL_TZ_INIT},
         )
-        print(f"🗄️ Database: MySQL ({settings.DB_HOST}:{settings.DB_PORT}/{settings.DB_NAME})")
+        print(f"🗄️ Database: MySQL ({settings.DB_HOST}:{settings.DB_PORT}/{settings.DB_NAME}, timezone=UTC+8)")
 
     _SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=_engine)
 

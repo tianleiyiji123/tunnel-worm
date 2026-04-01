@@ -1,17 +1,17 @@
-import { defineConfig } from 'vite'
-import vue from '@vitejs/plugin-vue'
+import { defineConfig } from "vite";
+import vue from "@vitejs/plugin-vue";
 
 export default defineConfig({
-  base: '/static/',
+  base: "/static/",
   plugins: [vue()],
   server: {
-    host: '0.0.0.0',
+    host: "0.0.0.0",
     allowedHosts: true,
     proxy: {
-      '/api': {
-        target: 'http://localhost:8000',
+      "/api": {
+        target: "http://localhost:7895",
         changeOrigin: true,
       },
     },
   },
-})
+});

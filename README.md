@@ -254,7 +254,7 @@ tunnel-worm/
 │   │   │   └── SetupView.vue      # 安装向导（数据库+存储配置）
 │   │   ├── router/          # 路由配置 + 守卫
 │   │   └── styles/          # 全局样式
-│   └── public/              # 静态资源 (favicon.svg)
+│   └── public/              # 静态资源 (logo.png)
 ├── server/                  # FastAPI 后端
 │   ├── routes/              # API 路由
 │   │   ├── auth.py          # 认证 (注册/登录/用户信息)

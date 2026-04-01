@@ -1,6 +1,7 @@
-# Docker image dependencies (all supported backends)
+# Docker image dependencies (optimized for size)
+# Core
 fastapi==0.115.0
-uvicorn[standard]==0.30.0
+uvicorn==0.30.0
 pydantic==2.9.0
 pydantic-settings==2.5.2
 python-multipart==0.0.9
@@ -9,11 +10,11 @@ aiofiles==24.1.0
 sqlalchemy==2.0.35
 # Database drivers
 pymysql==1.1.1
-# JWT 认证
+# JWT auth (minimal)
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
 bcrypt==4.2.1
-# Storage SDKs
+# Storage SDKs (these are heavy but required for cloud storage features)
 minio==7.2.9
 oss2==2.18.4
 cos-python-sdk-v5==1.9.30

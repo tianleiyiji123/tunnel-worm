@@ -125,3 +125,9 @@ async def spa_catchall(request: Request, path: str):
     if index_path.is_file():
         return FileResponse(str(index_path))
     return {"error": "Frontend not found. Run 'npm run build' in client/ or use Docker."}
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("main:app", host="0.0.0.0", port=7895, reload=True, log_level="info")
+

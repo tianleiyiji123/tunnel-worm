@@ -1,10 +1,18 @@
 import random
 import string
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
 
 from database import Transfer, TransferFile, TransferRecord
 from config import settings
+
+
+# Beijing timezone (UTC+8)
+_BJT = timezone(timedelta(hours=8))
+
+
+def _now():
+    return datetime.now(_BJT)
 
 
 def _get_storage():
@@ -43,7 +51,7 @@ def create_transfer(
     File-only transfers always expire after TRANSFER_EXPIRE_HOURS.
     """
     code = generate_code(db)
-    expires_at = datetime.utcnow() + timedelta(hours=settings.TRANSFER_EXPIRE_HOURS)
+    expires_at = _now() + timedelta(hours=settings.TRANSFER_EXPIRE_HOURS)
 
     # Determine if this transfer should be permanent
     is_permanent = False
@@ -98,7 +106,7 @@ def verify_code(db: Session, code: str) -> tuple[bool, str]:
     if not transfer:
         return False, "密码无效，请检查后重试"
 
-    now = datetime.utcnow()
+    now = _now()
 
     # Permanent transfers never expire
     if not transfer.permanent and transfer.expires_at < now:
@@ -127,7 +135,7 @@ def record_fail(db: Session, code: str) -> tuple[bool, str]:
     transfer.fail_count = (transfer.fail_count or 0) + 1
 
     if transfer.fail_count >= settings.MAX_FAIL_ATTEMPTS:
-        transfer.locked_until = datetime.utcnow() + timedelta(minutes=settings.LOCK_DURATION_MINUTES)
+        transfer.locked_until = _now() + timedelta(minutes=settings.LOCK_DURATION_MINUTES)
         db.commit()
         return True, f"错误次数过多，密码已锁定 {settings.LOCK_DURATION_MINUTES} 分钟"
 
@@ -185,7 +193,7 @@ def cleanup_expired(db: Session):
     Permanent transfers (user's text) are never deleted.
     """
     storage = _get_storage()
-    now = datetime.utcnow()
+    now = _now()
     expired = (
         db.query(Transfer)
         .filter(Transfer.expires_at < now, Transfer.permanent == False)

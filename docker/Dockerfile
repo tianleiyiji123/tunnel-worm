@@ -1,8 +1,8 @@
 # ============================================================
-# Tunnel Worm - Docker Image
+# Tunnel Worm - Docker Image (Ultra Optimized)
 # ============================================================
-# Multi-stage build: Frontend (Node) + Backend (Python)
-# Optimized for Docker Hub distribution
+# Multi-stage build: Frontend (Node) + Backend (Python Alpine)
+# Target image size: <150MB
 # ============================================================
 
 # ---- Stage 1: 前端构建 ----
@@ -10,12 +10,13 @@ FROM node:20-alpine AS frontend-builder
 
 WORKDIR /app/client
 COPY client/package*.json ./
-RUN npm ci
+RUN npm ci --prefer-offline --no-audit
 COPY client/ ./
-RUN npx vite build
+RUN npx vite build && \
+  rm -rf node_modules
 
-# ---- Stage 2: 运行阶段 ----
-FROM python:3.11-slim
+# ---- Stage 2: 运行阶段 (Alpine + Python) ----
+FROM python:3.12-alpine
 
 # Re-declare ARGs to use in this stage
 ARG VERSION=1.0.0
@@ -23,7 +24,7 @@ ARG BUILD_DATE=unknown
 
 # ---- Metadata Labels ----
 LABEL maintainer="tianleiyiji123"
-LABEL description="Tunnel Worm - 跨设备资源传输工具，一条隧道连接你的设备，Tunnel Worm - Cross-device resource transfer tool, one tunnel connects your devices"
+LABEL description="Tunnel Worm - Cross-device resource transfer tool"
 LABEL version="${VERSION}"
 LABEL org.opencontainers.image.title="Tunnel Worm"
 LABEL org.opencontainers.image.description="Cross-device resource transfer tool"
@@ -35,36 +36,47 @@ LABEL org.opencontainers.image.vendor="Tunnel Worm"
 
 WORKDIR /app
 
-# 安装 Python 基础依赖（不含 MySQL SDK 和云存储 SDK）
+# Install Python dependencies in a single layer (build deps installed and removed)
 COPY server/requirements-docker.txt ./requirements-docker.txt
-RUN pip install --no-cache-dir -r requirements-docker.txt
+RUN apk add --no-cache --virtual .build-deps \
+  gcc musl-dev libffi-dev rust cargo && \
+  pip install --no-cache-dir --compile -r requirements-docker.txt && \
+  apk del .build-deps && \
+  find /usr/local -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true && \
+  find /usr/local -type d -name 'tests' -exec rm -rf {} + 2>/dev/null || true && \
+  rm -rf /root/.cache
 
-# 复制后端代码
+# Runtime dependencies (minimal)
+RUN apk add --no-cache libstdc++ curl
+
+# Copy backend code (exclude unnecessary files)
 COPY server/ ./server/
 
-# 复制前端构建产物到 static 目录（FastAPI StaticFiles 服务）
+# Copy frontend build output
 COPY --from=frontend-builder /app/client/dist ./static
 
-# 复制启动脚本
+# Copy entrypoint script
 COPY docker/entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
 
-# 创建数据目录
-RUN mkdir -p /app/data /app/data/uploads
+# Create data directory with proper permissions
+RUN mkdir -p /app/data/uploads
 
 # Expose port
 EXPOSE 7895
 
 # Environment variables
-ENV DATA_DIR=/app/data
-ENV PYTHONUNBUFFERED=1
+ENV DATA_DIR=/app/data \
+  PYTHONUNBUFFERED=1 \
+  PYTHONDONTWRITEBYTECODE=1 \
+  PYTHONFAULTHANDLER=1
 
 # Data volume
 VOLUME ["/app/data"]
 
-# Health check
+# Health check (using curl instead of requests)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-  CMD python -c "import requests; requests.get('http://localhost:7895/api/health')" || exit 1
+  CMD curl -f http://localhost:7895/api/health || exit 1
 
 # Start command
 CMD ["/app/entrypoint.sh"]

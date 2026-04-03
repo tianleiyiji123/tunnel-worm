@@ -1,18 +1,15 @@
 import random
 import string
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 
 from database import Transfer, TransferFile, TransferRecord
 from config import settings
 
 
-# Beijing timezone (UTC+8)
-_BJT = timezone(timedelta(hours=8))
-
-
 def _now():
-    return datetime.now(_BJT)
+    """Get current time in Beijing timezone (naive datetime)."""
+    return datetime.utcnow() + timedelta(hours=8)
 
 
 def _get_storage():

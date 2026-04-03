@@ -54,8 +54,6 @@ services:
       - "7895:7895"
     volumes:
       - tunnel-worm_data:/app/data
-    environment:
-      - DATA_DIR=/app/data
 
 volumes:
   tunnel-worm_data:
@@ -85,7 +83,7 @@ docker compose up -d
 
 | 选项               | 说明                                       | 适用场景                    |
 | ------------------ | ------------------------------------------ | --------------------------- |
-| **SQLite（推荐）** | 零配置，数据文件存储在容器内部             | 个人使用、轻量部署          |
+| **SQLite（推荐）** | 零配置，数据文件存储在数据卷中             | 个人使用、轻量部署          |
 | **MySQL**          | 需要填写主机、端口、用户名、密码、数据库名 | 已有 MySQL 服务、高并发场景 |
 
 选择 MySQL 时，向导页面会展开表单，填写连接信息后点击「测试连接」验证是否可用。
@@ -96,7 +94,7 @@ docker compose up -d
 
 | 选项                     | 说明                       | 需要填写的凭证                                     |
 | ------------------------ | -------------------------- | -------------------------------------------------- |
-| **容器内部存储（推荐）** | 零配置，文件存储在容器内部 | 无                                                 |
+| **本地存储（推荐）**     | 零配置，文件存储在数据卷中 | 无                                                 |
 | **MinIO**                | 兼容 S3 的自建对象存储     | Endpoint、Access Key、Secret Key、Bucket           |
 | **阿里云 OSS**           | 阿里云对象存储             | Access Key ID、Access Key Secret、Endpoint、Bucket |
 | **腾讯云 COS**           | 腾讯云对象存储             | Secret ID、Secret Key、Region、Bucket              |
@@ -114,8 +112,8 @@ docker compose up -d
 ```
 /app/data/
 ├── config.json          # 安装向导生成的配置（数据库 + 存储凭证）
-├── app.db               # SQLite 数据库文件（选择 SQLite 时）
-└── uploads/             # 本地存储的文件（选择容器内部存储时）
+├── suisuichong.db       # SQLite 数据库文件（选择 SQLite 时）
+└── uploads/             # 本地存储的文件（选择本地存储时）
 ```
 
 > ⚠️ 以上数据通过 Docker Volume `tunnel-worm_data` 持久化，`docker rm` 不会丢失数据。
@@ -167,34 +165,53 @@ docker restart tunnel-worm
 
 ## 🔧 配置选项
 
-### 配置方式
+### 配置优先级
 
-| 方式             | 说明                                 |
-| ---------------- | ------------------------------------ |
-| **Web 安装向导** | 浏览器中完成配置，写入 `config.json` |
-| **环境变量**     | `docker run -e DB_TYPE=mysql ...`    |
+| 优先级 | 配置来源                                   | 说明                               |
+| ------ | ------------------------------------------ | ---------------------------------- |
+| 1（高）| **Web 安装向导** (`/app/data/config.json`) | 浏览器中完成配置，推荐方式         |
+| 2      | **环境变量** (`docker run -e ...`)         | 适合 CI/CD 或批量部署预配置       |
+| 3（低）| **代码默认值**                             | SQLite + 本地存储，开箱即用       |
 
-> 💡 **推荐使用安装向导**，无需手动编辑任何文件。安装向导的配置优先级高于环境变量。
+> 💡 **推荐使用安装向导**。一旦安装向导完成配置，`config.json` 会覆盖环境变量的值。
 
 ### 环境变量
 
-| 变量                     | 说明                                     | 默认值         |
-| ------------------------ | ---------------------------------------- | -------------- |
-| `DATA_DIR`               | 数据目录                                 | /app/data      |
-| `DB_TYPE`                | 数据库类型 (sqlite/mysql)                | 空（自动检测） |
-| `DB_HOST`                | MySQL 主机                               | localhost      |
-| `DB_PORT`                | MySQL 端口                               | 3306           |
-| `DB_USER`                | MySQL 用户名                             | tunnelworm     |
-| `DB_PASSWORD`            | MySQL 密码                               | tunnelworm123  |
-| `DB_NAME`                | MySQL 数据库名                           | tunnelworm     |
-| `STORAGE_TYPE`           | 存储类型 (local/minio/alioss/tencentcos) | local          |
-| `TRANSFER_EXPIRE_HOURS`  | 资源过期时间（小时）                     | 24             |
-| `MAX_FILE_SIZE_MB`       | 单文件最大大小 (MB)                      | 50             |
-| `MAX_FILES_PER_TRANSFER` | 单次传输最大文件数                       | 10             |
-| `MAX_FAIL_ATTEMPTS`      | 密码最大错误次数                         | 5              |
-| `LOCK_DURATION_MINUTES`  | 锁定时长（分钟）                         | 1              |
-| `JWT_SECRET`             | JWT 签名密钥（自动生成）                 | —              |
-| `JWT_EXPIRE_HOURS`       | Token 有效期（小时）                     | 168 (7 天)     |
+#### 应用参数
+
+| 变量                     | 说明               | 默认值    |
+| ------------------------ | ------------------ | --------- |
+| `TRANSFER_EXPIRE_HOURS`  | 资源过期时间（小时） | 24        |
+| `MAX_FILE_SIZE_MB`       | 单文件最大大小 (MB) | 50        |
+| `MAX_FILES_PER_TRANSFER` | 单次传输最大文件数 | 10        |
+| `MAX_FAIL_ATTEMPTS`      | 密码最大错误次数   | 5         |
+| `LOCK_DURATION_MINUTES`  | 锁定时长（分钟）   | 1         |
+| `JWT_EXPIRE_HOURS`       | Token 有效期（小时） | 168 (7 天) |
+
+#### 预配置数据库（可选，也可通过安装向导配置）
+
+| 变量          | 说明               | 默认值   |
+| ------------- | ------------------ | -------- |
+| `DB_TYPE`     | 数据库类型         | 空（安装向导配置时自动检测） |
+| `DB_HOST`     | MySQL 主机         | localhost |
+| `DB_PORT`     | MySQL 端口         | 3306     |
+| `DB_USER`     | MySQL 用户名       | suisuichong |
+| `DB_PASSWORD` | MySQL 密码         | suisuichong123 |
+| `DB_NAME`     | MySQL 数据库名     | suisuichong |
+
+#### 预配置存储（可选，也可通过安装向导配置）
+
+| 变量          | 说明               | 默认值 |
+| ------------- | ------------------ | ------ |
+| `STORAGE_TYPE` | 存储类型           | local  |
+| `UPLOAD_DIR`  | 本地上传目录       | data/uploads |
+
+#### 其他
+
+| 变量         | 说明                     | 默认值   |
+| ------------ | ------------------------ | -------- |
+| `DATA_DIR`   | 数据目录                 | /app/data |
+| `JWT_SECRET` | JWT 签名密钥（自动生成） | —        |
 
 ---
 
@@ -232,7 +249,7 @@ docker restart tunnel-worm
 | -------- | ----------------------------------------- |
 | 前端框架 | Vue 3 + TypeScript + Vite 5               |
 | UI 组件  | Element Plus + TailwindCSS + Lucide Icons |
-| 后端框架 | Python 3.10+ / FastAPI / Uvicorn          |
+| 后端框架 | Python 3.12 / FastAPI / Uvicorn           |
 | ORM      | SQLAlchemy 2.0                            |
 | 数据库   | SQLite（默认）/ MySQL（可选）             |
 | 认证     | JWT (python-jose + passlib bcrypt)        |

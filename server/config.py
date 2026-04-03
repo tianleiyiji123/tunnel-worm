@@ -70,10 +70,9 @@ class Settings(BaseSettings):
         """Return 'sqlite' or 'mysql' based on DB_TYPE."""
         if self.DB_TYPE in ("sqlite", "mysql"):
             return self.DB_TYPE
-        # Auto-detect: if .env file loaded with a non-default DB_HOST, use mysql
+        # Auto-detect: if MySQL credentials are configured (non-default), use mysql
         # Otherwise default to sqlite (safe for Docker fresh start)
-        _env_path = Path(__file__).resolve().parent.parent / ".env"
-        if _env_path.exists():
+        if self.DB_HOST and self.DB_HOST != "localhost":
             return "mysql"
         return "sqlite"
 
@@ -104,16 +103,68 @@ class Settings(BaseSettings):
 
 settings = Settings()
 
-# Load JWT_SECRET from config.json if not set in env
-if not settings.JWT_SECRET and CONFIG_FILE.exists():
-    try:
-        with open(CONFIG_FILE, "r") as f:
-            cfg = json.load(f)
-            jwt_secret = cfg.get("JWT_SECRET", "")
-            if jwt_secret:
-                settings.JWT_SECRET = jwt_secret
-    except (json.JSONDecodeError, IOError):
-        pass
+
+def _load_config_json() -> dict:
+    """Load config.json if it exists."""
+    if CONFIG_FILE.exists():
+        try:
+            with open(CONFIG_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except (json.JSONDecodeError, IOError):
+            pass
+    return {}
+
+
+# Apply config.json on startup (overrides .env values)
+_cfg_json = _load_config_json()
+if _cfg_json:
+    # Database
+    if "db_type" in _cfg_json:
+        settings.DB_TYPE = _cfg_json["db_type"]
+    if "db_host" in _cfg_json:
+        settings.DB_HOST = _cfg_json["db_host"]
+    if "db_port" in _cfg_json:
+        settings.DB_PORT = _cfg_json["db_port"]
+    if "db_user" in _cfg_json:
+        settings.DB_USER = _cfg_json["db_user"]
+    if "db_password" in _cfg_json:
+        settings.DB_PASSWORD = _cfg_json["db_password"]
+    if "db_name" in _cfg_json:
+        settings.DB_NAME = _cfg_json["db_name"]
+    # Storage
+    if "storage_type" in _cfg_json:
+        settings.STORAGE_TYPE = _cfg_json["storage_type"]
+    if "upload_dir" in _cfg_json:
+        settings.UPLOAD_DIR = _cfg_json["upload_dir"]
+    # MinIO
+    if "minio_endpoint" in _cfg_json:
+        settings.MINIO_ENDPOINT = _cfg_json["minio_endpoint"]
+    if "minio_access_key" in _cfg_json:
+        settings.MINIO_ACCESS_KEY = _cfg_json["minio_access_key"]
+    if "minio_secret_key" in _cfg_json:
+        settings.MINIO_SECRET_KEY = _cfg_json["minio_secret_key"]
+    if "minio_bucket" in _cfg_json:
+        settings.MINIO_BUCKET = _cfg_json["minio_bucket"]
+    if "minio_secure" in _cfg_json:
+        settings.MINIO_SECURE = _cfg_json["minio_secure"]
+    # Aliyun OSS
+    if "alioss_access_key_id" in _cfg_json:
+        settings.ALIOSS_ACCESS_KEY_ID = _cfg_json["alioss_access_key_id"]
+    if "alioss_access_key_secret" in _cfg_json:
+        settings.ALIOSS_ACCESS_KEY_SECRET = _cfg_json["alioss_access_key_secret"]
+    if "alioss_bucket" in _cfg_json:
+        settings.ALIOSS_BUCKET = _cfg_json["alioss_bucket"]
+    if "alioss_endpoint" in _cfg_json:
+        settings.ALIOSS_ENDPOINT = _cfg_json["alioss_endpoint"]
+    # Tencent COS
+    if "tencentcos_secret_id" in _cfg_json:
+        settings.TENCENTCOS_SECRET_ID = _cfg_json["tencentcos_secret_id"]
+    if "tencentcos_secret_key" in _cfg_json:
+        settings.TENCENTCOS_SECRET_KEY = _cfg_json["tencentcos_secret_key"]
+    if "tencentcos_bucket" in _cfg_json:
+        settings.TENCENTCOS_BUCKET = _cfg_json["tencentcos_bucket"]
+    if "tencentcos_region" in _cfg_json:
+        settings.TENCENTCOS_REGION = _cfg_json["tencentcos_region"]
 
 # Generate a temporary JWT_SECRET if still empty (will be persisted on startup)
 if not settings.JWT_SECRET:

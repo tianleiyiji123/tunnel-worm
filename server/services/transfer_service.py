@@ -34,38 +34,90 @@ def generate_code(db: Session) -> str:
     raise Exception("Failed to generate unique code after 100 attempts")
 
 
+def reserve_code(db: Session) -> str:
+    """Generate a unique code and create a placeholder Transfer record.
+
+    Used for E2EE flow: client reserves a code, encrypts content with it,
+    then calls create_transfer with the same code and encrypted data.
+    """
+    code = generate_code(db)
+    expires_at = _now() + timedelta(hours=settings.TRANSFER_EXPIRE_HOURS)
+
+    transfer = Transfer(
+        code=code,
+        type="text",  # placeholder, will be updated
+        text_content=None,
+        expires_at=expires_at,
+        permanent=False,
+    )
+    db.add(transfer)
+    db.commit()
+
+    return code
+
+
 def create_transfer(
     db: Session,
     transfer_type: str,
     text_content: str = None,
     files: list = None,
     user_id: int = None,
+    encrypted: bool = False,
+    salt: str = None,
+    iv: str = None,
+    reserved_code: str = None,
 ) -> Transfer:
     """Create a new transfer record.
 
     If user_id is provided and type is text or mixed-with-text,
     the transfer is marked as permanent (never expires).
     File-only transfers always expire after TRANSFER_EXPIRE_HOURS.
+
+    If reserved_code is provided, update the existing placeholder record
+    instead of generating a new code (used for E2EE flow).
     """
-    code = generate_code(db)
-    expires_at = _now() + timedelta(hours=settings.TRANSFER_EXPIRE_HOURS)
+    if reserved_code:
+        # Update existing placeholder from reserve_code
+        transfer = db.query(Transfer).filter(Transfer.code == reserved_code).first()
+        if not transfer:
+            raise ValueError(f"Reserved code {reserved_code} not found")
+        code = reserved_code
+        transfer.type = transfer_type
+        transfer.text_content = text_content if transfer_type in ("text", "mixed") else None
+        transfer.user_id = user_id
+        transfer.encrypted = encrypted
+        transfer.salt = salt
+        transfer.iv = iv
+        # Recalculate permanent status
+        is_permanent = False
+        if user_id and transfer_type in ("text", "mixed"):
+            is_permanent = True
+        transfer.permanent = is_permanent
+        db.commit()
+        db.refresh(transfer)
+    else:
+        code = generate_code(db)
+        expires_at = _now() + timedelta(hours=settings.TRANSFER_EXPIRE_HOURS)
 
-    # Determine if this transfer should be permanent
-    is_permanent = False
-    if user_id and transfer_type in ("text", "mixed"):
-        is_permanent = True
+        # Determine if this transfer should be permanent
+        is_permanent = False
+        if user_id and transfer_type in ("text", "mixed"):
+            is_permanent = True
 
-    transfer = Transfer(
-        code=code,
-        type=transfer_type,
-        text_content=text_content if transfer_type in ("text", "mixed") else None,
-        expires_at=expires_at,
-        user_id=user_id,
-        permanent=is_permanent,
-    )
-    db.add(transfer)
-    db.commit()
-    db.refresh(transfer)
+        transfer = Transfer(
+            code=code,
+            type=transfer_type,
+            text_content=text_content if transfer_type in ("text", "mixed") else None,
+            expires_at=expires_at,
+            user_id=user_id,
+            permanent=is_permanent,
+            encrypted=encrypted,
+            salt=salt,
+            iv=iv,
+        )
+        db.add(transfer)
+        db.commit()
+        db.refresh(transfer)
 
     # Record the send action
     record = TransferRecord(

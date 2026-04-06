@@ -20,6 +20,11 @@ const router = createRouter({
       component: () => import('../views/RetrieveView.vue'),
     },
     {
+      path: '/s/:code',
+      name: 'share-link',
+      redirect: (to) => `/retrieve?code=${to.params.code}`,
+    },
+    {
       path: '/records',
       name: 'records',
       component: () => import('../views/RecordsView.vue'),

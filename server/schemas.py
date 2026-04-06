@@ -29,6 +29,9 @@ class TransferResponse(BaseModel):
     created_at: datetime
     expires_at: datetime
     download_count: int
+    encrypted: bool = False
+    salt: Optional[str] = None
+    iv: Optional[str] = None
 
 
 class TransferCreateResponse(BaseModel):

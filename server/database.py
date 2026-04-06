@@ -75,6 +75,10 @@ class Transfer(Base):
     # User system fields
     user_id = Column(Integer, ForeignKey("user.id"), nullable=True)
     permanent = Column(Boolean, default=False, server_default="0")
+    # E2EE fields
+    encrypted = Column(Boolean, default=False, server_default="0")
+    salt = Column(String(32), nullable=True)   # Base64(16 bytes)
+    iv = Column(String(24), nullable=True)      # Base64(12 bytes)
 
 
 class TransferFile(Base):

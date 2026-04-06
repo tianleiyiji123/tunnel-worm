@@ -12,11 +12,27 @@ from deps import get_current_user
 router = APIRouter(prefix="/api/transfer", tags=["transfer"])
 
 
+@router.get("/reserve-code")
+async def reserve_code(db: Session = Depends(get_db)):
+    """Reserve a unique 4-character code for E2EE encryption.
+
+    Creates a placeholder Transfer record so the code is locked.
+    The client should encrypt content with this code, then call
+    create_transfer with encrypted data and the same code.
+    """
+    code = transfer_service.reserve_code(db)
+    return {"code": code}
+
+
 @router.post("", response_model=TransferCreateResponse)
 async def create_transfer(
     type: str = Form(...),
     text_content: Optional[str] = Form(None),
     files: List[UploadFile] = File(default=[]),
+    encrypted: bool = Form(False),
+    salt: Optional[str] = Form(None),
+    iv: Optional[str] = Form(None),
+    reserved_code: Optional[str] = Form(None),
     db: Session = Depends(get_db),
     user: Optional[UserModel] = Depends(get_current_user),
 ):
@@ -60,7 +76,11 @@ async def create_transfer(
     user_id = user.id if user else None
 
     # Create transfer (with optional user_id for permanent text saving)
-    transfer = transfer_service.create_transfer(db, actual_type, text_content, user_id=user_id)
+    transfer = transfer_service.create_transfer(
+        db, actual_type, text_content, user_id=user_id,
+        encrypted=encrypted, salt=salt, iv=iv,
+        reserved_code=reserved_code,
+    )
 
     # Save files if any
     if files:
@@ -123,6 +143,9 @@ async def get_transfer(
         created_at=transfer.created_at,
         expires_at=transfer.expires_at,
         download_count=transfer.download_count or 0,
+        encrypted=transfer.encrypted or False,
+        salt=transfer.salt,
+        iv=transfer.iv,
     )
 
 

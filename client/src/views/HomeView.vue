@@ -67,6 +67,38 @@
         <SendFile ref="sendFileRef2" />
       </div>
 
+      <!-- E2EE Toggle -->
+      <div
+        class="mt-6 p-4 rounded-xl border transition-colors duration-200"
+        :class="
+          enableE2EE
+            ? 'bg-[#2D6A4F]/5 border-[#2D6A4F]/30'
+            : 'bg-[#F5F0E8]/50 border-[#DDA15E]/15'
+        "
+      >
+        <div class="flex items-center gap-3">
+          <button
+            @click="enableE2EE = !enableE2EE"
+            class="relative w-10 h-6 rounded-full transition-colors duration-200 cursor-pointer shrink-0"
+            :class="enableE2EE ? 'bg-[#2D6A4F]' : 'bg-[#6B705C]/30'"
+          >
+            <span
+              class="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform duration-200"
+              :class="enableE2EE ? 'translate-x-4' : ''"
+            ></span>
+          </button>
+          <div class="text-left">
+            <p class="text-sm font-medium text-[#1B1B1B] flex items-center gap-1.5">
+              <Lock size="14" :class="enableE2EE ? 'text-[#2D6A4F]' : 'text-[#6B705C]/40'" />
+              端到端加密
+            </p>
+            <p class="text-xs text-[#6B705C]/60 mt-0.5">
+              {{ enableE2EE ? '加密后服务端无法查看内容，只有持有密码的人才能解密' : '关闭状态，数据以明文存储在服务器' }}
+            </p>
+          </div>
+        </div>
+      </div>
+
       <!-- Submit Button -->
       <div class="mt-8">
         <button
@@ -80,7 +112,7 @@
             class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"
           ></div>
           <Worm v-else :size="20" />
-          {{ loading ? "正在传输..." : "生成密码" }}
+          {{ loading ? (enableE2EE ? '正在加密并传输...' : '正在传输...') : '生成密码' }}
         </button>
       </div>
     </div>
@@ -102,12 +134,19 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
-import { Type, FileUp, Layers } from "lucide-vue-next";
+import { Type, FileUp, Layers, Lock } from "lucide-vue-next";
 import { ElMessage } from "element-plus";
-import { createTransfer } from "../api";
+import { createTransfer, reserveCode } from "../api";
 import SendText from "../components/SendText.vue";
 import SendFile from "../components/SendFile.vue";
 import CodeDisplay from "../components/CodeDisplay.vue";
+import {
+  encryptText,
+  encryptFileData,
+  generateSalt,
+  generateIV,
+  decodeBase64,
+} from "../utils/crypto";
 
 const Worm = {
   template: `<svg width="20" height="20" viewBox="60 130 330 200" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="btnWormGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#fff;stop-opacity:0.9"/><stop offset="100%" style="stop-color:#fff;stop-opacity:0.7"/></linearGradient></defs><path d="M100 300 Q130 270 160 285 Q190 300 220 270 Q250 240 280 260 Q310 280 340 250 Q370 220 400 240 Q420 255 420 255" fill="none" stroke="white" stroke-width="36" stroke-linecap="round" opacity="0.2"/><ellipse cx="100" cy="300" rx="24" ry="22" fill="url(#btnWormGrad)" opacity="0.5"/><ellipse cx="152" cy="278" rx="26" ry="24" fill="url(#btnWormGrad)" opacity="0.55"/><ellipse cx="208" cy="268" rx="28" ry="26" fill="url(#btnWormGrad)" opacity="0.6"/><ellipse cx="266" cy="262" rx="30" ry="28" fill="url(#btnWormGrad)" opacity="0.65"/><ellipse cx="326" cy="250" rx="32" ry="30" fill="url(#btnWormGrad)" opacity="0.7"/><ellipse cx="386" cy="238" rx="34" ry="32" fill="url(#btnWormGrad)" opacity="0.8"/><ellipse cx="420" cy="238" rx="48" ry="46" fill="url(#btnWormGrad)"/></svg>`,
@@ -121,6 +160,7 @@ const tabs = [
 
 const activeTab = ref("text");
 const loading = ref(false);
+const enableE2EE = ref(false);
 const showCodeModal = ref(false);
 const generatedCode = ref("");
 const expiresAt = ref("");
@@ -139,9 +179,8 @@ function getFilesFromRef(
 async function handleSubmit() {
   loading.value = true;
   try {
-    const formData = new FormData();
-    formData.append("type", activeTab.value);
-
+    // Collect text content
+    let textContent: string | undefined;
     if (activeTab.value === "text" || activeTab.value === "mixed") {
       const text =
         activeTab.value === "text"
@@ -152,9 +191,11 @@ async function handleSubmit() {
         loading.value = false;
         return;
       }
-      if (text) formData.append("text_content", text);
+      textContent = text || undefined;
     }
 
+    // Collect files
+    let rawFiles: File[] = [];
     if (activeTab.value === "file" || activeTab.value === "mixed") {
       const files =
         activeTab.value === "mixed"
@@ -166,15 +207,65 @@ async function handleSubmit() {
         loading.value = false;
         return;
       }
-      if (files?.length) {
-        files.forEach((f: File) => formData.append("files", f));
-      }
+      rawFiles = files || [];
     }
 
-    const result = await createTransfer(formData);
-    generatedCode.value = result.code;
-    expiresAt.value = result.expires_at;
-    showCodeModal.value = true;
+    const formData = new FormData();
+    formData.append("type", activeTab.value);
+
+    if (enableE2EE.value) {
+      // === E2EE Flow ===
+      // Step 1: Reserve a code from server
+      const { code } = await reserveCode();
+
+      // Step 2: Generate salt and iv
+      const salt = generateSalt();
+      const iv = generateIV();
+      const saltBytes = decodeBase64(salt);
+      const ivBytes = decodeBase64(iv);
+
+      // Step 3: Encrypt text (if any)
+      if (textContent) {
+        const encrypted = await encryptText(textContent, code, saltBytes, ivBytes);
+        formData.append("text_content", encrypted.ciphertext);
+      }
+
+      // Step 4: Encrypt files (if any)
+      for (const file of rawFiles) {
+        const arrayBuffer = await file.arrayBuffer();
+        const encryptedBuffer = await encryptFileData(
+          arrayBuffer,
+          code,
+          saltBytes,
+          ivBytes
+        );
+        const encryptedFile = new File([encryptedBuffer], file.name, {
+          type: file.type,
+        });
+        formData.append("files", encryptedFile);
+      }
+
+      // Step 5: Append E2EE metadata
+      formData.append("encrypted", "true");
+      formData.append("salt", salt);
+      formData.append("iv", iv);
+      formData.append("reserved_code", code);
+
+      // Step 6: Upload encrypted data
+      const result = await createTransfer(formData);
+      generatedCode.value = code;
+      expiresAt.value = result.expires_at;
+      showCodeModal.value = true;
+    } else {
+      // === Normal Flow (no encryption) ===
+      if (textContent) formData.append("text_content", textContent);
+      rawFiles.forEach((f: File) => formData.append("files", f));
+
+      const result = await createTransfer(formData);
+      generatedCode.value = result.code;
+      expiresAt.value = result.expires_at;
+      showCodeModal.value = true;
+    }
   } catch (err: any) {
     const detail = err.response?.data?.detail || "传输失败，请重试";
     ElMessage.error(detail);

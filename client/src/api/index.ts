@@ -32,6 +32,12 @@ api.interceptors.response.use(
 
 // ---- Transfer API ----
 
+// Reserve a code for E2EE encryption
+export async function reserveCode(): Promise<{ code: string }> {
+  const res = await api.get('/transfer/reserve-code')
+  return res.data
+}
+
 // Create transfer (text/files)
 export async function createTransfer(
   formData: FormData

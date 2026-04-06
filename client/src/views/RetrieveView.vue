@@ -19,7 +19,7 @@
 
     <!-- Input Card -->
     <div
-      v-if="!transferData"
+      v-if="!transferData && !decrypting"
       class="brand-card p-6 sm:p-8 animate-tunnel-emerge"
       style="animation-delay: 0.15s"
     >
@@ -44,6 +44,26 @@
           {{ loading ? "正在提取..." : "提取资源" }}
         </button>
       </div>
+    </div>
+
+    <!-- Decrypting State -->
+    <div
+      v-else-if="decrypting"
+      class="brand-card p-8 text-center animate-tunnel-emerge"
+    >
+      <div
+        class="w-16 h-16 mx-auto mb-4 bg-[#2D6A4F]/10 rounded-2xl flex items-center justify-center"
+      >
+        <div
+          class="w-7 h-7 border-2 border-[#2D6A4F]/30 border-t-[#2D6A4F] rounded-full animate-spin"
+        ></div>
+      </div>
+      <h3 class="text-lg font-bold text-[#1B1B1B] mb-2">
+        正在解密内容
+      </h3>
+      <p class="text-sm text-[#6B705C]">
+        内容已启用端到端加密，正在浏览器中解密...
+      </p>
     </div>
 
     <!-- Error State -->
@@ -75,12 +95,17 @@
           <CheckCircle size="22" class="text-[#2D6A4F]" />
         </div>
         <div>
-          <h3 class="text-base font-bold text-[#2D6A4F]">资源提取成功</h3>
+          <h3 class="text-base font-bold text-[#2D6A4F]">
+            资源提取成功
+            <span v-if="transferData.encrypted" class="inline-flex items-center gap-1 ml-2 text-xs font-normal text-[#2D6A4F]/60">
+              <Lock size="12" /> 已解密
+            </span>
+          </h3>
           <p class="text-xs text-[#6B705C]/60">密码 {{ transferData.code }}</p>
         </div>
       </div>
 
-      <ResourcePreview :data="transferData" />
+      <ResourcePreview :data="transferData" :code="code" />
 
       <!-- New retrieval -->
       <div class="mt-6 pt-4 border-t border-[#2D6A4F]/10">
@@ -96,10 +121,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
-import { Unlock, AlertCircle, CheckCircle } from "lucide-vue-next";
+import { ref, onMounted } from "vue";
+import { Unlock, AlertCircle, CheckCircle, Lock } from "lucide-vue-next";
 import { ElMessage } from "element-plus";
 import { retrieveTransfer } from "../api";
+import { decryptText } from "../utils/crypto";
 import PasswordInput from "../components/PasswordInput.vue";
 import ResourcePreview from "../components/ResourcePreview.vue";
 
@@ -116,13 +142,29 @@ interface TransferData {
   created_at: string;
   expires_at: string;
   download_count: number;
+  encrypted: boolean;
+  salt: string | null;
+  iv: string | null;
 }
 
 const code = ref("");
 const loading = ref(false);
+const decrypting = ref(false);
 const errorMsg = ref("");
 const transferData = ref<TransferData | null>(null);
 const passwordInputRef = ref<InstanceType<typeof PasswordInput> | null>(null);
+
+// Auto-fill and auto-submit code from share link (e.g. /s/A3K7 → /retrieve?code=A3K7)
+const isFromShareLink = ref(false);
+onMounted(() => {
+  const params = new URLSearchParams(window.location.search);
+  const codeFromUrl = params.get("code");
+  if (codeFromUrl && codeFromUrl.length === 4) {
+    code.value = codeFromUrl.toUpperCase();
+    isFromShareLink.value = true;
+    handleRetrieve();
+  }
+});
 
 async function handleRetrieve() {
   if (code.value.length !== 4) return;
@@ -130,10 +172,46 @@ async function handleRetrieve() {
   loading.value = true;
   errorMsg.value = "";
   transferData.value = null;
+  decrypting.value = false;
 
   try {
     const result = await retrieveTransfer(code.value);
-    transferData.value = result;
+
+    // Check if E2EE encrypted
+    if (result.encrypted && result.salt && result.iv) {
+      // Show decrypting state
+      loading.value = false;
+      decrypting.value = true;
+
+      try {
+        // Decrypt text content
+        if (result.text_content) {
+          result.text_content = await decryptText(
+            result.text_content,
+            code.value,
+            result.salt,
+            result.iv
+          );
+        }
+
+        // Mark files as needing client-side decryption
+        if (result.files) {
+          result.files = result.files.map((f) => ({
+            ...f,
+            encrypted: true,
+          }));
+        }
+
+        transferData.value = result;
+      } catch (decryptErr) {
+        errorMsg.value = "解密失败，请确认密码是否正确";
+        ElMessage.error("解密失败，密码可能不正确");
+      } finally {
+        decrypting.value = false;
+      }
+    } else {
+      transferData.value = result;
+    }
   } catch (err: any) {
     const detail = err.response?.data?.detail || "提取失败，请重试";
     errorMsg.value = detail;
@@ -147,6 +225,7 @@ function resetState() {
   code.value = "";
   errorMsg.value = "";
   transferData.value = null;
+  decrypting.value = false;
   passwordInputRef.value?.clear();
 }
 </script>

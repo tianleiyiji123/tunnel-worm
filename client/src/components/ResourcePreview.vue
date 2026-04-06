@@ -36,7 +36,23 @@
             <p class="text-sm font-medium text-[#1B1B1B] truncate">{{ file.name }}</p>
             <p class="text-xs text-[#6B705C]/60">{{ formatSize(file.size) }}</p>
           </div>
+          <!-- Encrypted file: download, decrypt, then save -->
+          <button
+            v-if="file.encrypted"
+            @click="decryptAndDownload(file)"
+            :disabled="decryptingFile === file.name"
+            class="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-white bg-[#2D6A4F] rounded-lg hover:bg-[#40916C] transition-colors sm:opacity-0 sm:group-hover:opacity-100 shrink-0 disabled:opacity-50"
+          >
+            <div
+              v-if="decryptingFile === file.name"
+              class="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin"
+            ></div>
+            <Download v-else size="14" />
+            {{ decryptingFile === file.name ? '解密中...' : '解密下载' }}
+          </button>
+          <!-- Normal file: direct download -->
           <a
+            v-else
             :href="file.download_url"
             download
             class="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-white bg-[#2D6A4F] rounded-lg hover:bg-[#40916C] transition-colors sm:opacity-0 sm:group-hover:opacity-100 shrink-0"
@@ -64,20 +80,36 @@
 import { ref } from 'vue'
 import { Copy, Check, FileText, Download } from 'lucide-vue-next'
 import { ElMessage } from 'element-plus'
+import { decryptFileData } from '../utils/crypto'
+
+interface FileItem {
+  name: string
+  size: number
+  content_type: string
+  download_url: string
+  encrypted?: boolean
+}
 
 interface TransferData {
   code: string
   type: string
   text_content: string | null
-  files: Array<{ name: string; size: number; content_type: string; download_url: string }> | null
+  files: FileItem[] | null
   created_at: string
   expires_at: string
   download_count: number
+  encrypted?: boolean
+  salt?: string | null
+  iv?: string | null
 }
 
-const props = defineProps<{ data: TransferData }>()
+const props = defineProps<{
+  data: TransferData
+  code: string
+}>()
 
 const textCopied = ref(false)
+const decryptingFile = ref<string | null>(null)
 
 function formatSize(bytes: number): string {
   if (bytes === 0) return '0 B'
@@ -105,6 +137,51 @@ async function copyText() {
     setTimeout(() => { textCopied.value = false }, 2000)
   } catch {
     ElMessage.error('复制失败')
+  }
+}
+
+async function decryptAndDownload(file: FileItem) {
+  if (!props.data.salt || !props.data.iv) {
+    ElMessage.error('缺少解密信息')
+    return
+  }
+
+  decryptingFile.value = file.name
+
+  try {
+    // Step 1: Download encrypted file
+    const response = await fetch(file.download_url)
+    if (!response.ok) throw new Error('下载失败')
+    const encryptedData = await response.arrayBuffer()
+
+    // Step 2: Decrypt in browser
+    const decryptedData = await decryptFileData(
+      encryptedData,
+      props.code,
+      props.data.salt,
+      props.data.iv
+    )
+
+    // Step 3: Trigger download
+    const blob = new Blob([decryptedData], { type: file.content_type })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = file.name
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+
+    ElMessage.success('文件解密下载成功')
+  } catch (err: any) {
+    if (err.name === 'OperationError') {
+      ElMessage.error('解密失败，密码可能不正确')
+    } else {
+      ElMessage.error(err.message || '解密下载失败')
+    }
+  } finally {
+    decryptingFile.value = null
   }
 }
 </script>

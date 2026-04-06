@@ -46,7 +46,44 @@
             </div>
           </div>
 
-          <!-- Copy button -->
+          <!-- QR Code -->
+          <div class="mb-5">
+            <div
+              class="inline-flex flex-col items-center p-4 bg-white rounded-2xl border border-[#2D6A4F]/10"
+            >
+              <canvas
+                ref="qrCanvas"
+                class="w-[160px] h-[160px] sm:w-[180px] sm:h-[180px]"
+              ></canvas>
+              <p class="text-xs text-[#6B705C]/60 mt-2">扫码即可在另一台设备提取</p>
+            </div>
+          </div>
+
+          <!-- Share link -->
+          <div class="mb-5">
+            <div
+              class="flex items-center gap-3 p-3 bg-[#FEFAE0]/40 rounded-xl border border-[#DDA15E]/15"
+            >
+              <div class="flex-1 min-w-0 text-left">
+                <p class="text-xs text-[#6B705C]/50 mb-0.5">分享链接</p>
+                <p
+                  class="text-sm text-[#2D6A4F] font-medium truncate"
+                >
+                  {{ shareUrl }}
+                </p>
+              </div>
+              <button
+                @click="copyShareLink"
+                class="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-white bg-[#2D6A4F] rounded-lg hover:bg-[#40916C] transition-colors cursor-pointer shrink-0"
+              >
+                <Check v-if="linkCopied" size="14" />
+                <Link v-else size="14" />
+                {{ linkCopied ? "已复制" : "复制" }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Copy code button -->
           <button
             @click="copyCode"
             class="brand-btn-primary w-full flex items-center justify-center gap-2 mb-4"
@@ -77,9 +114,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from "vue";
-import { Copy, Check } from "lucide-vue-next";
+import { ref, computed, watch, nextTick } from "vue";
+import { Copy, Check, Link } from "lucide-vue-next";
 import { ElMessage } from "element-plus";
+import QRCode from "qrcode";
 
 const props = defineProps<{
   visible: boolean;
@@ -90,7 +128,12 @@ const props = defineProps<{
 defineEmits(["close"]);
 
 const copied = ref(false);
+const linkCopied = ref(false);
+const qrCanvas = ref<HTMLCanvasElement | null>(null);
 const displayCode = computed(() => props.code.split(""));
+const shareUrl = computed(() => {
+  return `${window.location.origin}/s/${props.code}`;
+});
 const expireText = computed(() => {
   const expiry = new Date(props.expiresAt);
   const now = new Date();
@@ -100,6 +143,28 @@ const expireText = computed(() => {
   const minutes = Math.floor(diff / (1000 * 60));
   return `${minutes} 分钟`;
 });
+
+// Generate QR code when modal opens
+watch(
+  () => props.visible,
+  async (visible) => {
+    if (visible && props.code) {
+      await nextTick();
+      if (qrCanvas.value) {
+        try {
+          await QRCode.toCanvas(qrCanvas.value, shareUrl.value, {
+            width: 180,
+            margin: 1,
+            color: { dark: "#2D6A4F", light: "#ffffff" },
+          });
+        } catch {
+          // QR generation failed silently
+        }
+      }
+    }
+  },
+  { immediate: true }
+);
 
 async function copyCode() {
   try {
@@ -121,6 +186,29 @@ async function copyCode() {
     ElMessage.success("密码已复制");
     setTimeout(() => {
       copied.value = false;
+    }, 2000);
+  }
+}
+
+async function copyShareLink() {
+  try {
+    await navigator.clipboard.writeText(shareUrl.value);
+    linkCopied.value = true;
+    ElMessage.success("链接已复制");
+    setTimeout(() => {
+      linkCopied.value = false;
+    }, 2000);
+  } catch {
+    const ta = document.createElement("textarea");
+    ta.value = shareUrl.value;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand("copy");
+    document.body.removeChild(ta);
+    linkCopied.value = true;
+    ElMessage.success("链接已复制");
+    setTimeout(() => {
+      linkCopied.value = false;
     }, 2000);
   }
 }
